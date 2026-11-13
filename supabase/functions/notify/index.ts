@@ -11,7 +11,15 @@ const CORS = {
 };
 const SITE = (Deno.env.get('SITE_URL') ?? 'https://lebipdesmaries.fr').replace(/\/$/, '');
 const FROM = Deno.env.get('MAIL_FROM') ?? 'Le bip des mariés <contact@lebipdesmaries.fr>';
-const KEY = Deno.env.get('RESEND_API_KEY');
+const REPLY_TO = Deno.env.get('MAIL_REPLY_TO') ?? 'virginie.maitredujeu@gmail.com';
+
+// Clé Resend : variable d'environnement si elle existe, sinon table fermée « app_secrets » (inaccessible depuis un navigateur)
+async function resendKey(sb: any): Promise<string | undefined> {
+  const env = Deno.env.get('RESEND_API_KEY');
+  if (env) return env;
+  const { data } = await sb.from('app_secrets').select('value').eq('name', 'RESEND_API_KEY').maybeSingle();
+  return data?.value ?? undefined;
+}
 const MAX_MAILS_PER_EVENT = 6;
 
 const json = (body: unknown, status = 200) =>
@@ -28,7 +36,6 @@ async function secretOk(row: { secret_hash: string }, secret: unknown) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Méthode refusée' }, 405);
-  if (!KEY) return json({ error: 'mail_not_configured' }, 501);
 
   let b: any;
   try { b = await req.json(); } catch { return json({ error: 'Requête invalide' }, 400); }
@@ -39,6 +46,8 @@ Deno.serve(async (req) => {
   if (!to.length || to.some((m) => !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || m.length > 120)) return json({ error: 'Adresse e-mail invalide' }, 400);
 
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  const KEY = await resendKey(sb);
+  if (!KEY) return json({ error: 'mail_not_configured' }, 501);
   const { data: row } = await sb.from('events').select('id,n1,n2,wedding_date,secret_hash,mail_count').eq('id', ev).maybeSingle();
   if (!row || !(await secretOk(row, b.secret))) return json({ error: 'Code incorrect' }, 403);
   if ((row.mail_count ?? 0) >= MAX_MAILS_PER_EVENT) return json({ error: 'Trop d\'e-mails envoyés pour ce livre d\'or' }, 429);
@@ -85,7 +94,7 @@ Le bip des mariés — ${SITE.replace(/^https?:\/\//, '')}`;
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to, subject, html, text }),
+    body: JSON.stringify({ from: FROM, to, reply_to: REPLY_TO, subject, html, text }),
   });
   if (!r.ok) return json({ error: 'L\'envoi a échoué', detail: (await r.text()).slice(0, 200) }, 502);
   await sb.from('events').update({ mail_count: (row.mail_count ?? 0) + 1 }).eq('id', ev);

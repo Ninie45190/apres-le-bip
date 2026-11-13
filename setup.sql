@@ -252,3 +252,63 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net with schema extensions;
 select cron.unschedule(jobid) from cron.job where jobname = 'apres-le-bip-maintenance';
 select cron.schedule('apres-le-bip-maintenance', '0 5 * * *', $$select net.http_post(url := 'https://VOTRE-PROJET.supabase.co/functions/v1/maintenance', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{}'::jsonb)$$);
+
+-- Suivi des ventes : une ligne par code d'achat, mise à jour automatiquement (déclencheurs sur events)
+alter table codes add column if not exists order_number text;      -- n° de commande : à remplir à la main
+alter table codes add column if not exists status text not null default 'Disponible';
+alter table codes add column if not exists couple text;
+alter table codes add column if not exists wedding_date date;
+alter table codes add column if not exists mail1 text;
+alter table codes add column if not exists mail2 text;
+
+create or replace function sync_client() returns trigger language plpgsql security definer set search_path = public as $$
+declare e events%rowtype; v_status text;
+begin
+  if tg_op = 'DELETE' then
+    update codes set status = 'Supprimé', couple = null, mail1 = null, mail2 = null where event_id = old.id;
+    return old;
+  end if;
+  e := new;
+  v_status := case
+    when e.opt_capsule and e.capsule_sent_at is not null then 'Capsule livrée'
+    when e.opt_capsule and coalesce(array_length(e.capsule_emails, 1), 0) > 0 then 'Capsule programmée'
+    when e.opt_capsule then 'Capsule à configurer'
+    else 'Livre d''or créé' end;
+  update codes set status = v_status, couple = e.n1 || ' & ' || e.n2, wedding_date = e.wedding_date,
+    mail1 = e.capsule_emails[1], mail2 = e.capsule_emails[2] where event_id = e.id;
+  return new;
+end $$;
+
+drop trigger if exists trg_sync_client_ins on events;
+create trigger trg_sync_client_ins after insert on events for each row execute function sync_client();
+drop trigger if exists trg_sync_client_upd on events;
+create trigger trg_sync_client_upd after update on events for each row execute function sync_client();
+drop trigger if exists trg_sync_client_del on events;
+create trigger trg_sync_client_del after delete on events for each row execute function sync_client();
+
+-- Le code est lié au livre d'or APRÈS l'insertion de l'event : on resynchronise aussi quand le code est marqué utilisé
+create or replace function sync_client_code() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.event_id is not null and old.event_id is distinct from new.event_id then
+    update events set id = id where id = new.event_id;   -- déclenche sync_client
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_sync_client_code on codes;
+create trigger trg_sync_client_code after update of event_id on codes for each row execute function sync_client_code();
+
+create or replace view ventes with (security_invoker = true) as
+select code as "Clé", case kind when 'standard' then 'Standard' when 'capsule' then 'Time capsule' else 'Ajout time capsule' end as "Formule",
+  status as "Statut", order_number as "N° de commande", couple as "Mariés", wedding_date as "Mariage", mail1 as "Mail 1", mail2 as "Mail 2",
+  source as "Origine", note as "Note", created_at as "Code créé le", used_at as "Utilisé le"
+from codes order by created_at desc, code;
+revoke all on ventes from public, anon, authenticated;
+
+-- rattrapage des livres d'or existants
+update events set id = id;
+
+-- Clé Resend (l'envoi d'e-mails) : table fermée, lue uniquement par les fonctions serveur. La valeur n'est JAMAIS écrite dans ce fichier :
+--   insert into app_secrets(name, value) values ('RESEND_API_KEY', 're_...') on conflict (name) do update set value = excluded.value;
+create table if not exists app_secrets (name text primary key, value text not null);
+alter table app_secrets enable row level security;
+revoke all on app_secrets from public, anon, authenticated;

@@ -7,7 +7,15 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const SITE = (Deno.env.get('SITE_URL') ?? 'https://lebipdesmaries.fr').replace(/\/$/, '');
 const FROM = Deno.env.get('MAIL_FROM') ?? 'Le bip des mariés <contact@lebipdesmaries.fr>';
-const KEY = Deno.env.get('RESEND_API_KEY');
+const REPLY_TO = Deno.env.get('MAIL_REPLY_TO') ?? 'virginie.maitredujeu@gmail.com';
+
+// Clé Resend : variable d'environnement si elle existe, sinon table fermée « app_secrets » (inaccessible depuis un navigateur)
+async function resendKey(sb: any): Promise<string | undefined> {
+  const env = Deno.env.get('RESEND_API_KEY');
+  if (env) return env;
+  const { data } = await sb.from('app_secrets').select('value').eq('name', 'RESEND_API_KEY').maybeSingle();
+  return data?.value ?? undefined;
+}
 const RETENTION_DAYS = Number(Deno.env.get('RETENTION_DAYS') ?? 90);          // après la date du mariage
 const CAPSULE_KEEP_DAYS = Number(Deno.env.get('CAPSULE_KEEP_DAYS') ?? 90);    // après la livraison de la capsule
 
@@ -20,6 +28,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   const bucket = sb.storage.from('media');
+  const KEY = await resendKey(sb);
   const today = iso(new Date());
   const report = { delivered: 0, deliveryFailed: 0, purged: 0, trimmed: 0, mailConfigured: !!KEY };
 
@@ -31,7 +40,7 @@ Deno.serve(async (req) => {
   }
 
   async function mail(to: string, subject: string, html: string, text: string) {
-    const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [to], subject, html, text }) });
+    const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html, text }) });
     return r.ok;
   }
 
