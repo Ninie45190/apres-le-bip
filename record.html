@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Enregistrer votre annonce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: grid; place-items: center; padding: 22px 16px; }
+  .card { width: 100%; max-width: 440px; padding: 48px 26px 40px; text-align: center; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .names { font-size: clamp(2.6rem, 12vw, 3.6rem); }
+  .timer { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; letter-spacing: .08em; }
+  .sample { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.2rem; line-height: 1.5; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 6px; }
+</style>
+</head>
+<body>
+<div class="card fade">
+
+  <div class="step" id="s-load">
+    <p class="caps">Un instant</p>
+    <h1 class="script gold names" id="load-t">Connexion…</h1>
+    <p class="hint" id="load-h"></p>
+    <button class="btn" id="retry" hidden>Réessayer</button>
+  </div>
+
+  <div class="step" id="s-rec" hidden>
+    <p class="caps">Votre message d'accueil</p>
+    <h1 class="script gold names" id="names"></h1>
+    <p class="sample" id="sample"></p>
+    <button class="round" id="rec" aria-label="Enregistrer"></button>
+    <div class="timer gold" id="timer">0:00</div>
+    <p class="hint" id="r-hint">Touchez le micro pour commencer. Parlez près du téléphone, à voix claire.</p>
+  </div>
+
+  <div class="step" id="s-review" hidden>
+    <p class="caps">Écoutez votre annonce</p>
+    <audio id="rv" controls></audio>
+    <button class="btn fill" id="use">Utiliser cet enregistrement</button>
+    <button class="link" id="again">Recommencer</button>
+    <p class="hint" id="err" style="color:#a4472f"></p>
+  </div>
+
+  <div class="step" id="s-done" hidden>
+    <h1 class="script gold names">C'est enregistré</h1>
+    <div class="orn" style="margin:0 auto"><i></i></div>
+    <p class="lead">Votre annonce est envoyée. Vous pouvez revenir sur votre ordinateur : la page se met à jour toute seule.</p>
+    <button class="link" id="redo">Enregistrer une autre version</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
+const MAX = 60;
+const m = location.hash.slice(1).match(/^([a-z0-9]{6,16})\.([a-z0-9]{8,})$/i);
+let ev = m && { id: m[1].toLowerCase(), secret: m[2].toLowerCase() };
+let recorder, tInt, t0, current = null;
+function show(id) { document.querySelectorAll('.step').forEach(s => s.hidden = s.id !== id); }
+$('rec').innerHTML = MIC;
+
+async function init() {
+  show('s-load'); $('retry').hidden = true; $('load-t').textContent = 'Connexion…'; $('load-h').textContent = '';
+  if (!CONFIGURED || !ev) return fail('Ce lien est incomplet. Scannez à nouveau le QR code affiché sur votre ordinateur.', true);
+  try {
+    await api('list_messages', { p_event: ev.id, p_secret: ev.secret });         // vérifie le code secret
+    const e = (await api('get_event', { p_id: ev.id }))[0];
+    if (!e) return fail('Ce livre d\'or est introuvable.', true);
+    $('names').textContent = coupleNames(e.n1, e.n2);
+    $('sample').textContent = '« Bonjour, vous êtes bien chez ' + (e.n1 && e.n2 ? e.n1 + ' et ' + e.n2 : 'les mariés') + '… Laissez-nous un message après le bip. »';
+    show('s-rec');
+  } catch (err) { fail(/Code incorrect/.test(err.message) ? 'Ce lien n\'est plus valable.' : 'Connexion impossible. Vérifiez votre connexion internet.', /Code incorrect/.test(err.message)); }
+}
+function fail(msg, final) { $('load-t').textContent = 'Oups'; $('load-h').textContent = msg; $('retry').hidden = !!final; show('s-load'); }
+$('retry').onclick = init;
+
+function toRec() { show('s-rec'); $('rec').innerHTML = MIC; $('rec').classList.remove('rec'); $('timer').textContent = '0:00'; }
+$('rec').onclick = async () => {
+  const b = $('rec');
+  if (recorder) return stopRec();
+  try { recorder = await startRecorder(l => b.style.setProperty('--lvl', l)); }
+  catch (e) { $('r-hint').textContent = 'Micro inaccessible : autorisez-le dans votre navigateur puis réessayez.'; return; }
+  b.classList.add('rec'); b.innerHTML = STOP; $('r-hint').textContent = 'Touchez pour terminer.';
+  t0 = Date.now();
+  tInt = setInterval(() => { const s = (Date.now() - t0) / 1000; $('timer').textContent = fmtTime(s); if (s >= MAX) stopRec(); }, 250);
+};
+async function stopRec() {
+  clearInterval(tInt);
+  const r = await recorder.stop(); recorder = null;
+  $('rec').classList.remove('rec');
+  if (r.dur < 2) { toRec(); $('r-hint').textContent = 'Trop court — réessayez.'; return; }
+  current = r; $('rv').src = URL.createObjectURL(r.blob); $('err').textContent = ''; show('s-review');
+}
+$('again').onclick = toRec; $('redo').onclick = toRec;
+
+$('use').onclick = async () => {
+  $('use').disabled = true; $('err').textContent = '';
+  try {
+    await api('update_greeting', { p_event: ev.id, p_secret: ev.secret, p_greeting: await blobToB64(current.blob), p_mime: current.mime });
+    show('s-done');
+  } catch (e) { $('err').textContent = 'L\'envoi a échoué : ' + e.message + '. Réessayez.'; }
+  $('use').disabled = false;
+};
+
+init();
+</script>
+</body>
+</html>

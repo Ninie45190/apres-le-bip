@@ -85,10 +85,12 @@
     <h2 class="script gold">Vos souvenirs</h2>
     <div class="actions">
       <label class="btn fill mb">Prendre une photo<input type="file" id="in-photo" accept="image/*" capture="environment" hidden></label>
+      <label class="btn mb">Prendre un selfie<input type="file" id="in-selfie" accept="image/*" capture="user" hidden></label>
       <label class="btn mb">Filmer une vidéo<input type="file" id="in-video" accept="video/*" capture="environment" hidden></label>
       <label class="btn mb">Choisir dans ma galerie<input type="file" id="in-gallery" accept="image/*,video/*" multiple hidden></label>
     </div>
     <p class="hint">Une photo prise est <b>envoyée aussitôt</b>. Avec la galerie, vous pouvez en envoyer plusieurs d'un coup, par exemple en fin de soirée.</p>
+    <p class="hint" id="m-screen" hidden>Les photos prises sur le moment peuvent s'afficher sur l'écran de la salle. Les vidéos et les envois par lot restent privés.</p>
     <div style="width:100%"><label class="caps" for="mname" style="display:block">Votre prénom (facultatif)</label><input type="text" id="mname" placeholder="Marie" autocomplete="given-name" maxlength="50"></div>
     <div class="mq" id="mq"></div>
     <p class="hint" id="mstat"></p>
@@ -166,6 +168,7 @@ function setupWelcome() {
   $('w-hint').hidden = !a;
   $('more').hidden = !a; $('more-media').hidden = !m;
   $('who').value = savedName(); $('mname').value = savedName();
+  $('m-screen').hidden = !hello.opt_screen;
 }
 
 /* ---- Message vocal : annonce, bip, enregistrement ---- */
@@ -174,8 +177,10 @@ $('pick').onclick = () => {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   show('s-listen');
   let finished = false;
-  const end = async () => { if (finished) return; finished = true; try { a.pause(); } catch (e) {} await beep(audioCtx); toRec(); };
-  const a = new Audio(URL.createObjectURL(b64ToBlob(hello.greeting, hello.mime)));
+  let a = null;
+  const end = async () => { if (finished) return; finished = true; try { a && a.pause(); } catch (e) {} await beep(audioCtx); toRec(); };
+  if (!hello.greeting) { setTimeout(end, 300); return; }     // annonce pas encore enregistrée : on va directement au bip
+  a = new Audio(URL.createObjectURL(b64ToBlob(hello.greeting, hello.mime)));
   a.onended = end; $('skip').onclick = end;
   a.play().catch(end);
 };
@@ -280,17 +285,18 @@ function updateStat() {
 
 function failItem(it, text, final) { it.status = 'failed'; it.err = text; it.final = !!final; render(it); tx('media', 'readwrite', s => s.delete(it.id)); }
 
-async function prepare(file) {
-  const it = { id: crypto.randomUUID(), status: 'prep', progress: 0, tries: 0, guest: $('mname').value.trim() };
+async function prepare(file, opt) {
+  opt = opt || {};
+  const it = { id: crypto.randomUUID(), status: 'prep', progress: 0, tries: 0, guest: $('mname').value.trim(), mode: opt.live ? 'live' : 'batch' };
   queue.push(it); makeRow(it); render(it);
   const mime = mimeOf(file);
   try {
     if (mime.startsWith('image/')) {
-      const r = await compressImage(file);
+      const r = await compressImage(file, 2400, 0.85, !!opt.mirror);
       it.kind = 'image'; it.blob = r.blob; it.mime = r.mime;
       if (it.blob.size > CFG.maxPhotoMB * 1048576) return failItem(it, 'Photo trop lourde', true);
       it.thumb = URL.createObjectURL(it.blob);
-      await tx('media', 'readwrite', s => s.put({ id: it.id, event: eventId, guest: it.guest, mime: it.mime, blob: it.blob }));
+      await tx('media', 'readwrite', s => s.put({ id: it.id, event: eventId, guest: it.guest, mime: it.mime, blob: it.blob, mode: it.mode }));
     } else if (mime.startsWith('video/')) {
       it.kind = 'video'; it.blob = file; it.mime = mime;
       if (file.size > CFG.maxVideoMB * 1048576) return failItem(it, 'Trop lourde (' + fmtSize(file.size) + ', max ' + CFG.maxVideoMB + ' Mo) : choisissez une vidéo plus courte', true);
@@ -299,7 +305,7 @@ async function prepare(file) {
   it.status = 'ready'; render(it); pump();
 }
 
-function addFiles(files) { for (const f of files) prep = prep.then(() => prepare(f)).catch(() => {}); }
+function addFiles(files, opt) { for (const f of files) prep = prep.then(() => prepare(f, opt)).catch(() => {}); }
 
 function pump() {
   while (running < CONCURRENCY) {
@@ -312,7 +318,7 @@ function pump() {
 async function send(it) {
   running++; it.status = 'sending'; it.progress = 0; render(it); keepAwake(true);
   try {
-    const meta = await mediaApi({ action: 'sign_upload', event: eventId, mime: it.mime, size: it.blob.size, guest: it.guest });
+    const meta = await mediaApi({ action: 'sign_upload', event: eventId, mime: it.mime, size: it.blob.size, guest: it.guest, mode: it.mode });
     await putFile(meta.url, it.blob, it.mime, p => { it.progress = p; render(it); });
     it.status = 'done'; it.progress = 1;
     tx('media', 'readwrite', s => s.delete(it.id));
@@ -329,14 +335,16 @@ async function send(it) {
 async function resumeMedia() {
   const rows = ((await tx('media', 'readonly', s => s.getAll())) || []).filter(m => m.event === eventId && !queue.some(q => q.id === m.id));
   for (const m of rows) {
-    const it = { id: m.id, status: 'ready', progress: 0, tries: 0, guest: m.guest || '', kind: 'image', blob: m.blob, mime: m.mime, thumb: URL.createObjectURL(m.blob) };
+    const it = { id: m.id, status: 'ready', progress: 0, tries: 0, guest: m.guest || '', mode: m.mode || 'batch', kind: 'image', blob: m.blob, mime: m.mime, thumb: URL.createObjectURL(m.blob) };
     queue.push(it); makeRow(it); render(it);
   }
   if (rows.length) { note('Des photos en attente sont en cours d\'envoi…'); pump(); }
 }
 
-for (const id of ['in-photo', 'in-video', 'in-gallery'])
-  $(id).onchange = e => { addFiles([...e.target.files]); e.target.value = ''; };
+// photo / selfie = envoi aussitôt (peut être diffusé sur l'écran) ; galerie et vidéos = stockés seulement
+const INPUTS = { 'in-photo': { live: true }, 'in-selfie': { live: true, mirror: true }, 'in-video': {}, 'in-gallery': {} };
+for (const id in INPUTS)
+  $(id).onchange = e => { addFiles([...e.target.files], INPUTS[id]); e.target.value = ''; };
 
 connect();
 </script>

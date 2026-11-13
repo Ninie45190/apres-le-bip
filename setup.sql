@@ -1,4 +1,5 @@
--- Après le bip — installation complète de la base (état final). À coller UNE FOIS dans Supabase > SQL Editor > Run.
+-- Après le bip — installation complète de la base (état final).
+-- Fonctions serveur à déployer avec : supabase/functions/media (photos/vidéos) et supabase/functions/notify (e-mails, secret RESEND_API_KEY). À coller UNE FOIS dans Supabase > SQL Editor > Run.
 -- Les tables sont fermées (RLS sans aucune règle) : on n'y accède que par les fonctions ci-dessous
 -- et par la fonction serveur « media » (supabase/functions/media/index.ts) pour les photos et vidéos.
 
@@ -14,6 +15,8 @@ create table if not exists events (
   greeting_mime text,
   opt_audio boolean not null default true,
   opt_media boolean not null default true,
+  opt_screen boolean not null default false,   -- diffusion sur un écran (QR code + photos en direct)
+  mail_count int not null default 0,           -- nombre d'e-mails envoyés (limite anti-abus)
   created_at timestamptz not null default now()
 );
 
@@ -38,23 +41,22 @@ language sql security definer set search_path = public, extensions stable as $$
 $$;
 revoke all on function check_secret(text, text) from public, anon, authenticated;
 
--- Création d'un livre d'or
-create or replace function create_event(p_id text, p_secret text, p_n1 text, p_n2 text, p_date date, p_greeting text, p_mime text, p_opt_audio boolean default true, p_opt_media boolean default true)
+-- Création d'un livre d'or (l'annonce peut être enregistrée plus tard depuis un smartphone)
+create or replace function create_event(p_id text, p_secret text, p_n1 text, p_n2 text, p_date date, p_greeting text, p_mime text, p_opt_audio boolean default true, p_opt_media boolean default true, p_opt_screen boolean default false)
 returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
   if p_id !~ '^[a-z0-9]{6,16}$' or length(p_secret) < 8 then raise exception 'Identifiants invalides'; end if;
   if length(p_n1) > 60 or length(p_n2) > 60 or length(p_greeting) > 2500000 then raise exception 'Données trop longues'; end if;
   if not p_opt_audio and not p_opt_media then raise exception 'Activez au moins une option'; end if;
-  if p_opt_audio and p_greeting is null then raise exception 'Annonce manquante'; end if;
-  insert into events(id, n1, n2, wedding_date, secret_hash, greeting, greeting_mime, opt_audio, opt_media)
-  values (p_id, p_n1, p_n2, p_date, digest(p_secret, 'sha256'), decode(p_greeting, 'base64'), p_mime, p_opt_audio, p_opt_media);
+  insert into events(id, n1, n2, wedding_date, secret_hash, greeting, greeting_mime, opt_audio, opt_media, opt_screen)
+  values (p_id, p_n1, p_n2, p_date, digest(p_secret, 'sha256'), decode(p_greeting, 'base64'), p_mime, p_opt_audio, p_opt_media, p_opt_screen);
 end $$;
 
 -- Ce que voit l'invité en scannant le QR code
 create or replace function get_event(p_id text)
-returns table(n1 text, n2 text, wedding_date date, greeting text, mime text, opt_audio boolean, opt_media boolean)
+returns table(n1 text, n2 text, wedding_date date, greeting text, mime text, opt_audio boolean, opt_media boolean, opt_screen boolean)
 language sql security definer set search_path = public as $$
-  select n1, n2, wedding_date, replace(encode(greeting, 'base64'), E'\n', ''), greeting_mime, opt_audio, opt_media from events where id = p_id;
+  select n1, n2, wedding_date, replace(encode(greeting, 'base64'), E'\n', ''), greeting_mime, opt_audio, opt_media, opt_screen from events where id = p_id;
 $$;
 
 -- Dépôt d'un message vocal (p_id fourni par le téléphone : un renvoi ne crée pas de doublon)

@@ -143,12 +143,13 @@ function makeZip(files) {
 }
 
 /* ---------- Photos & vidéos ---------- */
-async function mediaApi(body) {
-  const r = await fetch(CFG.url + '/functions/v1/media', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key }, body: JSON.stringify(body) });
+async function fnCall(name, body) {
+  const r = await fetch(CFG.url + '/functions/v1/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key }, body: JSON.stringify(body) });
   let j = {}; try { j = await r.json(); } catch (e) {}
   if (!r.ok) { const err = new Error(j.error || ('HTTP ' + r.status)); err.status = r.status; throw err; }
   return j;
 }
+const mediaApi = body => fnCall('media', body);
 
 function fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + ' Mo' : Math.max(1, Math.round(n / 1024)) + ' Ko'; }
 function prettyGuest(slug) { const s = (slug || '').split('-').map(w => w ? w[0].toUpperCase() + w.slice(1) : w).join('-'); return !s || s === 'Invite' ? 'Invité' : s; }
@@ -162,7 +163,7 @@ function mimeOf(file) {
 }
 
 /* Réduit une photo (≈ 1 Mo au lieu de 4-8 Mo) ; en cas d'échec on garde l'original */
-async function compressImage(file, maxSide, quality) {
+async function compressImage(file, maxSide, quality, mirror) {
   maxSide = maxSide || 2400; quality = quality || 0.85;
   const mime = mimeOf(file);
   try {
@@ -170,10 +171,12 @@ async function compressImage(file, maxSide, quality) {
     const s = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
     const w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
-    c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    const cx = c.getContext('2d');
+    if (mirror) { cx.translate(w, 0); cx.scale(-1, 1); }   // selfie : image retournée comme dans un miroir
+    cx.drawImage(bmp, 0, 0, w, h);
     if (bmp.close) bmp.close();
     const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', quality));
-    if (blob && (mime !== 'image/jpeg' || blob.size < file.size)) return { blob, mime: 'image/jpeg' };
+    if (blob && (mirror || mime !== 'image/jpeg' || blob.size < file.size)) return { blob, mime: 'image/jpeg' };
   } catch (e) { /* format non décodable : on envoie tel quel */ }
   return { blob: file, mime };
 }

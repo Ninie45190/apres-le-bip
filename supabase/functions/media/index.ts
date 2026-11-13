@@ -62,7 +62,9 @@ Deno.serve(async (req) => {
         const { data: st } = await sb.rpc('media_stats', { p_event: ev });
         const n = Number(st?.[0]?.n ?? 0), bytes = Number(st?.[0]?.bytes ?? 0);
         if (n >= MAX_FILES || bytes + size > MAX_EVENT_BYTES) return json({ error: 'Le livre d\'or est complet' }, 507);
-        const path = `${ev}/${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}-${slugOf(b.guest)}.${ext}`;
+        // « l » = photo envoyée sur le moment (peut être diffusée sur l'écran), « b » = lot ou vidéo (stockée seulement)
+        const mode = !isVideo && b.mode === 'live' ? 'l' : 'b';
+        const path = `${ev}/${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}-${mode}-${slugOf(b.guest)}.${ext}`;
         const { data, error } = await bucket.createSignedUploadUrl(path);
         if (error || !data) return json({ error: 'Autorisation impossible' }, 500);
         return json({ path, url: data.signedUrl });
@@ -75,8 +77,10 @@ Deno.serve(async (req) => {
         if (error) return json({ error: 'Lecture impossible' }, 500);
         const items = (data ?? []).map((o: any) => {
           const base = String(o.name).split('/')[1] ?? '';
-          const slug = base.replace(/\.[^.]+$/, '').split('-').slice(2).join('-');
-          return { path: o.name, size: Number(o.size), mime: o.mime, created_at: o.created_at, guest: slug };
+          const parts = base.replace(/\.[^.]+$/, '').split('-');
+          const hasMode = parts[2] === 'l' || parts[2] === 'b';
+          const slug = parts.slice(hasMode ? 3 : 2).join('-');
+          return { path: o.name, size: Number(o.size), mime: o.mime, created_at: o.created_at, guest: slug, live: parts[2] === 'l' };
         });
         return json({ items });
       }

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Écran de la soirée</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { height: 100%; overflow: hidden; cursor: none; }
+  body.show-cursor { cursor: default; }
+  #head { position: absolute; top: 3.2vh; left: 0; right: 0; text-align: center; transition: opacity .8s; }
+  #head .names { font-size: clamp(2.2rem, 5.2vw, 5rem); }
+  #head .caps { font-size: clamp(.6rem, 1vw, .9rem); }
+  #stage { position: absolute; inset: 0; display: grid; place-items: center; padding: 14vh 6vw 9vh; transition: opacity .9s; }
+  .pol { background: #fff; padding: 1.4vmin 1.4vmin 5.2vmin; box-shadow: 0 2.2vmin 5vmin -1.4vmin rgba(80,60,20,.45), 0 0 0 1px rgba(176,141,60,.18); text-align: center; transform: rotate(var(--rot, 0deg)); transition: opacity .9s, transform .9s; }
+  .pol img { display: block; max-width: 68vw; max-height: 62vh; width: auto; height: auto; }
+  .pol .who { font-family: 'Pinyon Script', cursive; font-size: clamp(1.4rem, 3vmin, 3rem); color: var(--gold-deep); margin-top: .9vmin; line-height: 1; }
+  .pol.out { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(.97); }
+  #qrbox { position: absolute; transition: all 1s cubic-bezier(.4,0,.2,1); text-align: center; background: rgba(255,255,255,.94); border: 1px solid var(--line); box-shadow: 0 30px 70px -30px rgba(120,95,40,.4); }
+  #qrbox::before { content: ''; position: absolute; inset: 7px; border: 1px solid transparent; border-image: var(--gold-grad) 1; pointer-events: none; }
+  #qrbox svg { display: block; width: 100%; height: auto; }
+  #qrbox .lead { font-family: 'Cormorant Garamond', serif; font-style: italic; }
+  /* grand : QR au centre de l'écran (aucune photo à afficher) */
+  #qrbox.big { left: 50%; top: 54%; transform: translate(-50%, -50%); width: min(34vh, 80vw); padding: 3.4vh 3vh 2.6vh; }
+  #qrbox.big .qr { margin: 0 auto; }
+  #qrbox.big .lead { font-size: clamp(1rem, 2.4vh, 1.7rem); margin: 2vh 0 .6vh; }
+  #qrbox.big .caps { font-size: clamp(.55rem, 1.3vh, .9rem); }
+  /* petit : QR dans le coin pendant le diaporama */
+  #qrbox.small { right: 2.4vw; bottom: 3vh; left: auto; top: auto; transform: none; width: min(15vh, 14vw); padding: 1.2vh 1.2vh .9vh; }
+  #qrbox.small .lead { font-size: clamp(.6rem, 1.5vh, 1rem); margin-top: .8vh; line-height: 1.15; }
+  #qrbox.small .caps { display: none; }
+  #fs { position: absolute; left: 1.6vw; bottom: 1.6vh; opacity: 0; transition: opacity .4s; }
+  body.show-cursor #fs { opacity: .8; }
+  #msg { position: absolute; left: 0; right: 0; bottom: 2vh; text-align: center; font-size: .8rem; color: var(--soft); }
+</style>
+</head>
+<body>
+  <div id="head"><p class="caps" id="date"></p><h1 class="script gold names" id="names"></h1></div>
+  <div id="stage"></div>
+  <div id="qrbox" class="big"><div class="qr" id="qr"></div><p class="lead" id="lead"></p><p class="caps">Scannez avec l'appareil photo de votre téléphone</p></div>
+  <button class="link" id="fs">Plein écran</button>
+  <p id="msg"></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const m = location.hash.slice(1).match(/^([a-z0-9]{6,16})\.([a-z0-9]{8,})$/i);
+const ev = m && { id: m[1].toLowerCase(), secret: m[2].toLowerCase() };
+const HOLD_NEW = 11000, HOLD_LOOP = 8000, POLL = 4000;
+let info = null, urls = {}, known = new Set(), live = [], priority = [], cursor = 0, current = null, timer = null, wake = null, firstLoad = true;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const mcall = (action, extra) => mediaApi({ action, event: ev.id, secret: ev.secret, ...extra });
+
+async function init() {
+  if (!CONFIGURED || !ev) return say('Ouvrez cet écran depuis le lien privé des mariés (bouton « Afficher sur un écran »).');
+  try {
+    await api('list_messages', { p_event: ev.id, p_secret: ev.secret });
+    const e = (await api('get_event', { p_id: ev.id }))[0];
+    if (!e) return say('Livre d\'or introuvable.');
+    info = e;
+  } catch (err) { return say('Lien invalide ou connexion impossible.'); }
+  $('names').textContent = coupleNames(info.n1, info.n2); $('date').textContent = fmtDate(info.wedding_date);
+  const a = info.opt_audio, md = info.opt_media;
+  $('lead').textContent = a && md ? 'Laissez-nous un message et vos plus belles photos' : md ? 'Partagez vos photos et vidéos' : 'Laissez-nous un message vocal';
+  const q = qrcode(0, 'M'); q.addData(new URL('invite.html', location.href).href + '#' + ev.id); q.make();
+  $('qr').innerHTML = q.createSvgTag({ cellSize: 8, margin: 0, scalable: true }).replace(/fill="black"/g, 'fill="#3b3226"');
+  keepAwake();
+  if (info.opt_screen && md) { await poll(); setInterval(poll, POLL); }
+}
+function say(t) { $('msg').textContent = t; }
+
+async function keepAwake() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+
+/* Seules les photos envoyées « sur le moment » sont diffusées ; les lots et les vidéos restent privés */
+async function poll() {
+  try {
+    const items = (await mcall('list')).items.filter(i => i.live && (i.mime || '').startsWith('image/'));
+    const need = items.filter(i => !urls[i.path]).map(i => i.path);
+    for (let k = 0; k < need.length; k += 100) Object.assign(urls, (await mcall('sign_download', { paths: need.slice(k, k + 100), ttl: 21600 })).urls);
+    const fresh = items.filter(i => !known.has(i.path));
+    fresh.forEach(i => known.add(i.path));
+    live = items;
+    if (!firstLoad) priority.push(...fresh);      // les nouvelles photos passent en premier
+    else firstLoad = false;
+    if (!timer && !busy && live.length) next();
+  } catch (e) { /* on garde l'affichage actuel */ }
+}
+
+const loadImg = url => new Promise((ok, ko) => { const i = new Image(); const t = setTimeout(() => ko(new Error('délai')), 20000); i.onload = () => { clearTimeout(t); ok(i); }; i.onerror = () => { clearTimeout(t); ko(new Error('image')); }; i.src = url; });
+let busy = false;
+async function next() {
+  if (busy) return;                       // un seul défilement à la fois
+  busy = true; clearTimeout(timer); timer = null;
+  let hold = HOLD_LOOP;
+  try {
+    if (!live.length) { setLayout(false); return; }
+    let it;
+    if (priority.length) { it = priority.shift(); hold = HOLD_NEW; }
+    else { cursor = (cursor + 1) % live.length; it = live[live.length - 1 - cursor] || live[0]; }  // de la plus récente à la plus ancienne
+    const img = await loadImg(urls[it.path]);
+    await show(img, it);
+  } catch (e) { hold = 500; }
+  finally { busy = false; if (live.length) timer = setTimeout(next, hold); }
+}
+
+async function show(img, it) {
+  setLayout(true);
+  const old = current;
+  if (old) { old.classList.add('out'); await sleep(700); old.remove(); }
+  const p = document.createElement('div'); p.className = 'pol out';
+  p.style.setProperty('--rot', (Math.random() * 3 - 1.5).toFixed(1) + 'deg');
+  const who = document.createElement('div'); who.className = 'who'; who.textContent = prettyGuest(it.guest) === 'Invité' ? '' : prettyGuest(it.guest);
+  p.append(img, who); $('stage').appendChild(p); current = p;
+  requestAnimationFrame(() => requestAnimationFrame(() => p.classList.remove('out')));
+}
+
+function setLayout(withPhotos) {
+  $('qrbox').className = withPhotos ? 'small' : 'big';
+  if (!withPhotos && current) { current.remove(); current = null; }
+}
+
+/* curseur et bouton visibles seulement quand on bouge la souris */
+let hide; document.addEventListener('mousemove', () => { document.body.classList.add('show-cursor'); clearTimeout(hide); hide = setTimeout(() => document.body.classList.remove('show-cursor'), 2500); });
+$('fs').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); };
+init();
+</script>
+</body>
+</html>
