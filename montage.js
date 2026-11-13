@@ -237,7 +237,8 @@ const Montage = (() => {
     const target = new Mp4Muxer.ArrayBufferTarget();
     const muxer = new Mp4Muxer.Muxer({ target, video: { codec: 'avc', width: W, height: H }, audio: { codec: 'aac', numberOfChannels: 1, sampleRate: sr }, fastStart: 'in-memory' });
     let fail = null;
-    const venc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { fail = e; } });
+    let vChunks = 0;
+    const venc = new VideoEncoder({ output: (c, m) => { vChunks++; muxer.addVideoChunk(c, m); }, error: e => { fail = e; } });
     venc.configure({ codec: 'avc1.640028', width: W, height: H, bitrate: 1200000, framerate: FPS });
     const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { fail = e; } });
     aenc.configure({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: 1, bitrate: 96000 });
@@ -278,7 +279,9 @@ const Montage = (() => {
       while (venc.encodeQueueSize > 8) await sleep(0);
       if (i % 20 === 0) { if (onProgress) onProgress(0.12 + 0.88 * i / frames, 'Création de la vidéo… ' + Math.round(100 * i / frames) + ' %'); await sleep(0); }
     }
-    await venc.flush(); muxer.finalize(); store.clear();
+    await venc.flush(); if (fail) throw fail;
+    if (!vChunks) throw new Error('votre navigateur n\'a produit aucune image vidéo (essayez avec Google Chrome à jour)');
+    muxer.finalize(); store.clear();
     return new Blob([target.buffer], { type: 'video/mp4' });
   }
 
