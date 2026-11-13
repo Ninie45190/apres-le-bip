@@ -72,8 +72,8 @@
       <p class="hint ok" id="codeinfo" style="margin-top:6px"></p>
       <div id="s-names">
         <div class="field row">
-          <div><label class="caps" for="n1">Marié(e)</label><input type="text" id="n1" placeholder="Camille" autocomplete="off" maxlength="40"></div>
-          <div><label class="caps" for="n2">Marié(e)</label><input type="text" id="n2" placeholder="Julien" autocomplete="off" maxlength="40"></div>
+          <div><label class="caps" for="n1">Marié(e)</label><input type="text" id="n1" placeholder="Prénom" autocomplete="off" maxlength="40"></div>
+          <div><label class="caps" for="n2">Marié(e)</label><input type="text" id="n2" placeholder="Prénom" autocomplete="off" maxlength="40"></div>
         </div>
         <div class="field"><label class="caps" for="dt">Date du mariage</label><input type="date" id="dt"><p class="hint" id="dt-hint" style="margin-top:6px"></p></div>
         <div class="field" style="margin-top:6px">
@@ -98,7 +98,7 @@
           <p class="hint" id="ghint">Touchez pour enregistrer — environ 20 secondes.</p>
         </div>
         <audio id="gplay" controls hidden></audio>
-        <p class="hint" style="margin-top:10px;font-style:italic" id="gsample">« Bonjour, vous êtes bien chez Camille et Julien… Laissez-nous un message après le bip. »</p>
+        <p class="hint" style="margin-top:10px;font-style:italic" id="gsample">« Bonjour, vous êtes bien chez [vos prénoms]… Laissez-nous un message après le bip. »</p>
         <div class="gphone">
           <button class="link" id="gphone-btn">Pas de micro ? Enregistrer avec mon smartphone</button>
           <div id="gphone-box" hidden>
@@ -291,7 +291,7 @@ function refreshSetup() {
   if (phoneMode) ['n1', 'n2', 'dt', 'o-audio', 'o-media', 'o-screen'].forEach(i => $(i).disabled = true);
 }
 ['n1', 'n2', 'dt', 'e1', 'e2', 'o-audio', 'o-media', 'o-screen'].forEach(i => { $(i).addEventListener('input', refreshSetup); $(i).addEventListener('change', refreshSetup); });
-$('n1').addEventListener('input', () => { const n1 = $('n1').value.trim() || 'Camille', n2 = $('n2').value.trim() || 'Julien'; $('gsample').textContent = '« Bonjour, vous êtes bien chez ' + n1 + ' et ' + n2 + '… Laissez-nous un message après le bip. »'; });
+$('n1').addEventListener('input', () => { const n1 = $('n1').value.trim(), n2 = $('n2').value.trim(); $('gsample').textContent = '« Bonjour, vous êtes bien chez ' + (n1 && n2 ? n1 + ' et ' + n2 : n1 || n2 || '[vos prénoms]') + '… Laissez-nous un message après le bip. »'; });
 $('n2').addEventListener('input', () => $('n1').dispatchEvent(new Event('input')));
 
 let grecording = null;
