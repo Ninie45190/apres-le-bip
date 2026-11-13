@@ -34,7 +34,7 @@ const Montage = (() => {
   async function prepare(spec, onProgress) {
     const items = [];
     if (spec.greeting) items.push({ kind: 'greeting', label: 'Le répondeur de ' + spec.names, blob: spec.greeting });
-    for (const v of spec.voices) items.push({ kind: 'voice', who: v.name, label: 'Message de ' + (v.name || 'un invité'), blob: v.blob });
+    for (const v of spec.voices) items.push({ kind: 'voice', who: v.name, label: 'Message de ' + (v.name || 'un invité') + (v.time ? ' · ' + v.time : ''), blob: v.blob });
     // Le répondeur passe pendant l'intro ; les messages suivent l'un après l'autre
     const segs = []; let introEnd = INTRO, t = 0, skipped = 0;
     for (let i = 0; i < items.length; i++) {
