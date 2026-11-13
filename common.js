@@ -1,4 +1,4 @@
-/* Après le bip — fonctions partagées (invités + mariés) */
+/* Le bip des mariés — fonctions partagées (invités + mariés) */
 const PREFIX = 'apreslebip-';
 
 function pickMime() {

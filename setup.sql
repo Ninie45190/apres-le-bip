@@ -1,4 +1,4 @@
--- Après le bip — installation complète de la base (état final). À coller UNE FOIS dans Supabase > SQL Editor > Run.
+-- Le bip des mariés — installation complète de la base (état final). À coller UNE FOIS dans Supabase > SQL Editor > Run.
 -- Fonctions serveur à déployer avec : supabase/functions/media (photos/vidéos), notify (e-mail du lien, secret RESEND_API_KEY)
 -- et maintenance (livraison des time capsules + suppression automatique, appelée chaque jour par pg_cron).
 -- Les tables sont fermées (RLS sans aucune règle) : on n'y accède que par les fonctions ci-dessous

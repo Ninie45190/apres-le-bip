@@ -1,4 +1,4 @@
-// Après le bip — fonction serveur « media » (photos & vidéos des invités)
+// Le bip des mariés — fonction serveur « media » (photos & vidéos des invités)
 // Rôle : autoriser les envois (livre d'or existant, tailles, quotas) et réserver lecture / suppression aux mariés (code secret).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 

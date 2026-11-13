@@ -1,4 +1,4 @@
-// Après le bip — fonction serveur « notify » : envoie aux mariés leur lien privé et leur code secret par e-mail.
+// Le bip des mariés — fonction serveur « notify » : envoie aux mariés leur lien privé et leur code secret par e-mail.
 // Nécessite un compte Resend (resend.com) : secret RESEND_API_KEY (obligatoire), MAIL_FROM et SITE_URL (facultatifs).
 // Tant que RESEND_API_KEY n'est pas défini, la fonction répond « mail_not_configured » et le site propose un e-mail pré-rempli.
 // L'adresse e-mail n'est jamais enregistrée : elle sert uniquement à l'envoi.
@@ -10,7 +10,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const SITE = (Deno.env.get('SITE_URL') ?? 'https://lebipdesmaries.fr').replace(/\/$/, '');
-const FROM = Deno.env.get('MAIL_FROM') ?? 'Après le bip <contact@lebipdesmaries.fr>';
+const FROM = Deno.env.get('MAIL_FROM') ?? 'Le bip des mariés <contact@lebipdesmaries.fr>';
 const KEY = Deno.env.get('RESEND_API_KEY');
 const MAX_MAILS_PER_EVENT = 6;
 
@@ -45,14 +45,14 @@ Deno.serve(async (req) => {
 
   const secret = String(b.secret);
   const names = `${row.n1} & ${row.n2}`;
-  const privateLink = `${SITE}/#${ev}.${secret}`;
+  const privateLink = `${SITE}/espace.html#${ev}.${secret}`;
   const guestLink = `${SITE}/invite.html#${ev}`;
   const code = `${ev}-${secret}`;
-  const subject = `Votre livre d'or « Après le bip » — ${names}`;
+  const subject = `Votre livre d'or « Le bip des mariés » — ${names}`;
 
   const text = `Bonjour,
 
-Votre livre d'or « Après le bip » est prêt.
+Votre livre d'or « Le bip des mariés » est prêt.
 
 Votre lien privé (à garder précieusement) :
 ${privateLink}
@@ -66,13 +66,13 @@ Le lien que vos invités reçoivent en scannant le QR code :
 ${guestLink}
 
 Belle fête !
-Après le bip — ${SITE.replace(/^https?:\/\//, '')}`;
+Le bip des mariés — ${SITE.replace(/^https?:\/\//, '')}`;
 
   const html = `<div style="background:#f8f5ef;padding:32px 16px;font-family:Georgia,'Times New Roman',serif;color:#3b3226">
   <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #d9c48a;padding:36px 30px;text-align:center">
     <p style="letter-spacing:.3em;text-transform:uppercase;font-size:11px;color:#8b7d68;margin:0 0 10px">Votre livre d'or</p>
     <h1 style="font-weight:400;font-size:30px;margin:0 0 6px;color:#8a6a24">${esc(names)}</h1>
-    <p style="font-style:italic;margin:0 0 24px">Votre livre d'or « Après le bip » est prêt.</p>
+    <p style="font-style:italic;margin:0 0 24px">Votre livre d'or « Le bip des mariés » est prêt.</p>
     <p style="margin:0 0 8px;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:#8b7d68">Votre lien privé</p>
     <p style="margin:0 0 22px"><a href="${esc(privateLink)}" style="display:inline-block;background:#b08d3c;color:#fff;padding:14px 26px;text-decoration:none;letter-spacing:.12em;text-transform:uppercase;font-size:12px">Ouvrir mon espace</a></p>
     <p style="margin:0 0 8px;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:#8b7d68">Votre code secret</p>

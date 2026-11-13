@@ -1,4 +1,4 @@
-/* Après le bip — montage vidéo : répondeur des mariés + messages de la soirée + photos qui défilent.
+/* Le bip des mariés — montage vidéo : répondeur des mariés + messages de la soirée + photos qui défilent.
    Aperçu dans le navigateur, export MP4 (H.264 + AAC) avec WebCodecs et mp4-muxer. */
 const Montage = (() => {
   const W = 1280, H = 720, FPS = 20;
@@ -111,7 +111,7 @@ const Montage = (() => {
       ctx.fillStyle = GOLD; ctx.font = '400 150px "Pinyon Script", cursive'; ctx.fillText('Merci', W / 2, 360);
       ornament(ctx, 415);
       ctx.fillStyle = INK; ctx.font = 'italic 400 44px "Cormorant Garamond", serif'; ctx.fillText(tl.names, W / 2, 500);
-      ctx.fillStyle = SOFT; ctx.font = '400 20px Jost, sans-serif'; ctx.letterSpacing = '7px'; ctx.fillText('APRÈS LE BIP', W / 2, 600); ctx.letterSpacing = '0px';
+      ctx.fillStyle = SOFT; ctx.font = '400 20px Jost, sans-serif'; ctx.letterSpacing = '7px'; ctx.fillText('LE BIP DES MARIÉS', W / 2, 600); ctx.letterSpacing = '0px';
     }
     ctx.restore();
   }

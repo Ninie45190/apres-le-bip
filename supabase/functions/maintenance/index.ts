@@ -1,4 +1,4 @@
-// Après le bip — fonction serveur « maintenance » (appelée chaque jour par pg_cron) :
+// Le bip des mariés — fonction serveur « maintenance » (appelée chaque jour par pg_cron) :
 //  1) livre les time capsules arrivées à échéance (2 e-mails distincts, par sécurité) ;
 //  2) supprime automatiquement les livres d'or (messages, photos, vidéos) après la durée de conservation.
 // Sans danger si quelqu'un l'appelle : elle n'exécute que du travail déjà « dû » et ne renvoie que des compteurs.
@@ -6,7 +6,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const SITE = (Deno.env.get('SITE_URL') ?? 'https://lebipdesmaries.fr').replace(/\/$/, '');
-const FROM = Deno.env.get('MAIL_FROM') ?? 'Après le bip <contact@lebipdesmaries.fr>';
+const FROM = Deno.env.get('MAIL_FROM') ?? 'Le bip des mariés <contact@lebipdesmaries.fr>';
 const KEY = Deno.env.get('RESEND_API_KEY');
 const RETENTION_DAYS = Number(Deno.env.get('RETENTION_DAYS') ?? 90);          // après la date du mariage
 const CAPSULE_KEEP_DAYS = Number(Deno.env.get('CAPSULE_KEEP_DAYS') ?? 90);    // après la livraison de la capsule
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     if (!KEY) { report.deliveryFailed++; continue; }
     const names = `${e.n1} & ${e.n2}`, link = `${SITE}/espace.html#${e.id}.${e.capsule_token}`;
     const subject = `Votre time capsule est arrivée — ${names}`;
-    const text = `Bonjour,\n\nIl y a quelque temps, vos invités vous ont laissé des messages et des photos. Ils vous attendent.\n\nOuvrez votre time capsule :\n${link}\n\nPensez à utiliser le bouton « Tout télécharger » : le lien reste actif ${CAPSULE_KEEP_DAYS} jours.\n\nAprès le bip — ${SITE.replace(/^https?:\/\//, '')}`;
+    const text = `Bonjour,\n\nIl y a quelque temps, vos invités vous ont laissé des messages et des photos. Ils vous attendent.\n\nOuvrez votre time capsule :\n${link}\n\nPensez à utiliser le bouton « Tout télécharger » : le lien reste actif ${CAPSULE_KEEP_DAYS} jours.\n\nLe bip des mariés — ${SITE.replace(/^https?:\/\//, '')}`;
     const html = `<div style="background:#f8f5ef;padding:32px 16px;font-family:Georgia,'Times New Roman',serif;color:#3b3226"><div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #d9c48a;padding:36px 30px;text-align:center">
       <p style="letter-spacing:.3em;text-transform:uppercase;font-size:11px;color:#8b7d68;margin:0 0 10px">Votre time capsule</p>
       <h1 style="font-weight:400;font-size:30px;margin:0 0 6px;color:#8a6a24">${esc(names)}</h1>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Après le bip — Espace des mariés</title>
+<title>Le bip des mariés — Espace des mariés</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="style.css">
 <style>
@@ -65,7 +65,7 @@
   <!-- CRÉATION -->
   <section id="setup" class="fade" hidden>
     <p class="caps">Votre livre d'or</p>
-    <h1 class="script gold names" style="margin-top:8px">Après le bip</h1>
+    <h1 class="script gold names" style="margin-top:8px">Le bip des mariés</h1>
     <div class="orn"><i></i></div>
     <div class="card">
       <p class="lead">Préparez ce que vos invités trouveront en scannant le QR code.</p>
@@ -232,7 +232,7 @@
   <div class="pc-qr" id="p-qr"></div>
   <p class="pc-scan">Scannez avec l'appareil photo de votre téléphone</p>
   <p class="pc-intro" id="p-intro"></p>
-  <p class="pc-foot">Après le bip · lebipdesmaries.fr</p>
+  <p class="pc-foot">Le bip des mariés · lebipdesmaries.fr</p>
 </div></div></div>
 
 <script src="vendor/qrcode.min.js"></script>
@@ -384,7 +384,7 @@ $('reg').onclick = startReplace; $('nogreet-btn').onclick = startReplace;
 
 /* ---------- E-mail du lien privé ---------- */
 function mailText() {
-  return 'Bonjour,\n\nVotre livre d\'or « Après le bip » est prêt.\n\nVotre lien privé (à garder précieusement) :\n' + privateUrl() + '\n\nVotre code secret :\n' + ev.id + '-' + ev.secret +
+  return 'Bonjour,\n\nVotre livre d\'or « Le bip des mariés » est prêt.\n\nVotre lien privé (à garder précieusement) :\n' + privateUrl() + '\n\nVotre code secret :\n' + ev.id + '-' + ev.secret +
     '\n\nAvec ce lien ou ce code, vous retrouvez à tout moment les messages vocaux, les photos et les vidéos de vos invités, et vous créez votre montage.\n\nLien que vos invités reçoivent en scannant le QR code :\n' + guestUrl() + '\n\nBelle fête !';
 }
 async function sendMail(to) {
@@ -392,7 +392,7 @@ async function sendMail(to) {
   $('mailstat').textContent = 'Envoi de l\'e-mail…';
   try { await fnCall('notify', { event: ev.id, secret: ev.secret, to }); $('mailstat').innerHTML = '<span class="ok">E-mail envoyé ✓</span> à ' + to.join(' et ') + ' (pensez à regarder les courriers indésirables).'; }
   catch (e) {
-    const href = 'mailto:' + to.map(encodeURIComponent).join(',') + '?subject=' + encodeURIComponent('Mon livre d\'or « Après le bip » — lien et code secret') + '&body=' + encodeURIComponent(mailText());
+    const href = 'mailto:' + to.map(encodeURIComponent).join(',') + '?subject=' + encodeURIComponent('Mon livre d\'or « Le bip des mariés » — lien et code secret') + '&body=' + encodeURIComponent(mailText());
     $('mailstat').innerHTML = e.message === 'mail_not_configured'
       ? 'L\'envoi automatique n\'est pas encore activé. <a href="' + href + '" style="color:var(--gold-deep)">Ouvrir un e-mail prêt à envoyer</a>.'
       : 'L\'envoi a échoué (' + e.message + '). <a href="' + href + '" style="color:var(--gold-deep)">Ouvrir un e-mail prêt à envoyer</a>.';
