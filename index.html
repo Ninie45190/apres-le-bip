@@ -37,21 +37,19 @@
   .phone { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 232px; height: 450px; border-radius: 38px; border: 8px solid #3b3226; background: linear-gradient(160deg, #fff, #fbf6ea); box-shadow: 0 40px 70px -30px rgba(80,60,20,.55); padding: 34px 16px 18px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 9px; z-index: 2; }
   .phone::before { content: ''; position: absolute; top: 9px; left: 50%; width: 62px; height: 6px; transform: translateX(-50%); border-radius: 4px; background: #3b3226; opacity: .85; }
   .phone .caps { font-size: .52rem; letter-spacing: .26em; }
-  .phone .nm { font-family: 'Pinyon Script', cursive; font-size: 2.1rem; line-height: 1.05; }
+  .phone .nm { font-family: 'Pinyon Script', cursive; font-size: 2.1rem; line-height: 1.12; padding: .08em .32em .12em; margin: 0; }
   .phone .lead { font-size: .95rem; line-height: 1.3; margin: 2px 0 6px; }
   .phone .btn { padding: 11px 12px; min-height: 0; font-size: .5rem; letter-spacing: .16em; width: 100%; }
   .phone .qrm { width: 78px; height: 78px; margin-top: auto; padding: 5px; background: #fff; border: 1px solid var(--line); }
   .phone .qrm svg { display: block; width: 100%; height: 100%; }
-  .polaroid { position: absolute; background: #fff; padding: 9px 9px 30px; box-shadow: 0 18px 30px -16px rgba(80,60,20,.55); z-index: 1; text-align: center; }
+  .polaroid { position: absolute; background: #fff; padding: 9px 9px 12px; box-shadow: 0 18px 30px -16px rgba(80,60,20,.55); z-index: 1; text-align: center; }
   .polaroid img { display: block; width: 148px; height: 112px; object-fit: cover; background: #efe8d8; }
-  .polaroid b { display: block; font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: 1.15rem; color: var(--gold-deep); margin-top: 3px; line-height: 1; }
-  .p1 { left: -10px; top: 64px; transform: rotate(-9deg); }
-  .p2 { right: -8px; top: 150px; transform: rotate(8deg); z-index: 3; }
-  .p3 { left: 8px; bottom: 6px; transform: rotate(5deg); z-index: 3; }
-  .stage { margin-bottom: 64px; }
-  .stage-note { position: absolute; left: 0; right: 0; bottom: -62px; text-align: center; font-size: .7rem; color: var(--soft); letter-spacing: .04em; }
+  .polaroid .felt { display: block; width: 148px; min-height: 40px; margin-top: 4px; font-family: 'Caveat', cursive; font-weight: 600; font-size: 1.12rem; line-height: 1.05; color: #243a73; transform: rotate(-2.5deg); letter-spacing: .01em; }
+  .p2 { right: -8px; top: 168px; transform: rotate(7deg); z-index: 3; }
+  .p3 { left: -2px; bottom: 6px; transform: rotate(-5deg); z-index: 3; }
+  .stage { margin-bottom: 24px; }
   @media (max-width: 420px) { .p2 { right: -16px; } }
-  @media (max-width: 520px) { .polaroid { padding: 6px 6px 22px; } .polaroid img { width: 116px; height: 88px; } .polaroid b { font-size: 1rem; } .p1 { top: 4px; left: -12px; z-index: 3; } .p2 { top: 176px; } .p3 { bottom: 14px; } }
+  @media (max-width: 520px) { .polaroid { padding: 6px 6px 10px; } .polaroid img { width: 116px; height: 88px; } .polaroid .felt { width: 116px; font-size: 1rem; min-height: 34px; } .p2 { top: 150px; } .p3 { bottom: 22px; } }
 
   section.s { padding: 64px 0; }
   section.s h2 { font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: clamp(2.4rem, 7vw, 3.6rem); text-align: center; margin-bottom: 6px; line-height: 1.15; }
@@ -120,9 +118,8 @@
       <p class="tiny">Pour les mariés et leurs invités · Un smartphone suffit</p>
     </div>
     <div class="stage" aria-hidden="true">
-      <div class="polaroid p1"><img src="images/exemple-selfie-cocktail.jpg" alt="" width="148" height="112" loading="eager"><b>Élodie</b></div>
-      <div class="polaroid p2"><img src="images/exemple-fin-de-soiree.jpg" alt="" width="148" height="112" loading="eager"><b>Marc</b></div>
-      <div class="polaroid p3"><img src="images/exemple-selfie-amies.jpg" alt="" width="148" height="112" loading="eager"><b>Zoé</b></div>
+      <div class="polaroid p2"><img src="images/exemple-fin-de-soiree.jpg" alt="" width="148" height="112" loading="eager"><span class="felt">Cravates : portées disparues</span></div>
+      <div class="polaroid p3"><img src="images/exemple-selfie-amies.jpg" alt="" width="148" height="112" loading="eager"><span class="felt">Essai n°14 : enfin la bonne</span></div>
       <div class="phone">
         <p class="caps">12 juin 2027</p>
         <p class="nm gold">Camille<br>&amp; Julien</p>
@@ -132,7 +129,6 @@
         <span class="btn">Partager mes photos</span>
         <div class="qrm" id="qrm"></div>
       </div>
-      <p class="stage-note">Images d'illustration générées par intelligence artificielle.</p>
     </div>
   </section>
 
