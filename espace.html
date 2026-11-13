@@ -526,7 +526,7 @@ $('cap-save').onclick = async () => {
 
 /* Achat de la time capsule depuis l'application (si les mariés changent d'avis) */
 (function () {
-  const shop = (CFG && CFG.shop) || {}, url = shop.payUrlUpgrade || shop.etsyUrlUpgrade || shop.etsyShopUrl;
+  const shop = (CFG && CFG.shop) || {}, url = (shop.onlinePay && shop.payUrlUpgrade) || shop.etsyUrlUpgrade || shop.etsyShopUrl;
   if (url) { $('cap-buy').href = url; $('cap-buy').hidden = false; }
   if (shop.priceUpgrade) $('cap-price').textContent = shop.priceUpgrade + ' · un code vous est remis après l\'achat, à saisir ci-dessus (« J\'ai un code »).';
 })();

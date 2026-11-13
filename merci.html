@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Merci — Le bip des mariés</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: grid; place-items: center; padding: 28px 16px; }
+  .wrap { width: 100%; max-width: 480px; text-align: center; }
+  .card { padding: 42px 28px 34px; }
+  .codebox { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.3rem, 6vw, 1.7rem); letter-spacing: .08em; border: 1px solid var(--line); background: #fff; padding: 14px 8px; margin: 14px 0 6px; user-select: all; }
+</style>
+</head>
+<body>
+<div class="wrap fade">
+  <a class="caps" href="./" style="text-decoration:none">Le bip des mariés</a>
+  <h1 class="script gold" style="margin:8px 0 4px;font-size:clamp(2.6rem,11vw,3.6rem)">Merci !</h1>
+  <div class="orn"><i></i></div>
+  <div class="card">
+    <p class="lead" id="wait">Nous confirmons votre paiement…</p>
+    <div id="done" hidden>
+      <p class="lead" style="margin-bottom:6px">Votre paiement est confirmé.</p>
+      <p class="hint">Voici votre code d'accès. Il vous est aussi envoyé par e-mail (regardez dans vos courriers indésirables).</p>
+      <div class="codebox" id="code"></div>
+      <p class="hint" id="how"></p>
+      <button class="btn fill" id="go" style="margin-top:18px">Créer mon livre d'or</button>
+    </div>
+    <p class="msg" id="err" style="color:#a4472f;margin-top:14px"></p>
+  </div>
+  <p class="legal-foot" style="margin-top:22px"><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a></p>
+</div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+(async () => {
+  const s = new URLSearchParams(location.search).get('s') || '';
+  if (!s) { $('wait').textContent = 'Commande introuvable.'; return; }
+  for (let i = 0; i < 30; i++) {            // le code est créé dès que Stripe confirme (quelques secondes)
+    try {
+      const r = await fnCall('shop', { action: 'order', session: s });
+      if (r.code) {
+        $('wait').hidden = true; $('done').hidden = false; $('code').textContent = r.code;
+        if (r.kind === 'upgrade') { $('how').textContent = "Ouvrez votre espace des mariés, puis « Ajouter la time capsule » et saisissez ce code."; $('go').textContent = 'Ouvrir mon espace'; $('go').onclick = () => location.href = 'acces.html#retrouver'; }
+        else { $('how').textContent = "Cliquez sur le bouton pour créer votre livre d'or (2 minutes)."; $('go').onclick = () => { try { sessionStorage.setItem('apreslebip-code', r.code); } catch (e) {} location.href = 'espace.html'; }; }
+        return;
+      }
+    } catch (e) { if (e.status === 404) { $('wait').textContent = 'Commande introuvable.'; return; } }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  $('wait').textContent = 'Votre paiement est bien enregistré.';
+  $('err').textContent = "Le code n'est pas encore arrivé : vous allez le recevoir par e-mail dans quelques minutes (pensez aux courriers indésirables).";
+})();
+</script>
+</body>
+</html>

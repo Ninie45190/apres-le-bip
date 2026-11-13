@@ -312,3 +312,12 @@ update events set id = id;
 create table if not exists app_secrets (name text primary key, value text not null);
 alter table app_secrets enable row level security;
 revoke all on app_secrets from public, anon, authenticated;
+
+-- Paiement en ligne (Stripe) : ventes enregistrées dans la table codes, une ligne par commande
+alter table codes add column if not exists stripe_session text unique;
+alter table codes add column if not exists buyer_email text;
+alter table codes add column if not exists amount_cents int;
+alter table codes add column if not exists sold_at timestamptz;
+alter table codes add column if not exists mail_sent boolean not null default false;
+-- Les clés Stripe se rangent comme la clé Resend, dans app_secrets : STRIPE_SECRET_KEY (clé restreinte rk_…) et STRIPE_WEBHOOK_SECRET (whsec_…)
+-- Fonctions site_sale(p_session, p_kind, p_email, p_amount) et order_code(p_session) : voir la migration « ventes_en_ligne » (réservées aux fonctions serveur « shop » et « stripe-webhook »).

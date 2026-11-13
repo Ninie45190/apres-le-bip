@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Acheter — Le bip des mariés</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: grid; place-items: center; padding: 28px 16px; }
+  .wrap { width: 100%; max-width: 480px; text-align: center; }
+  .card { padding: 42px 28px 34px; }
+  .price { font-family: 'Cormorant Garamond', serif; font-size: 3rem; line-height: 1; margin: 6px 0 2px; }
+  .msg { min-height: 1.4em; font-size: .9rem; margin-top: 14px; }
+  .bad { color: #a4472f; }
+  ul.inc { list-style: none; padding: 0; margin: 18px 0 8px; text-align: left; font-size: .95rem; }
+  ul.inc li { padding: 6px 0 6px 24px; position: relative; }
+  ul.inc li::before { content: '✦'; position: absolute; left: 0; color: var(--gold-deep); }
+  .pay-logos { font-size: .75rem; color: var(--soft); letter-spacing: .06em; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap fade">
+  <a class="caps" href="./" style="text-decoration:none">Le bip des mariés</a>
+  <h1 class="script gold" style="margin:8px 0 4px;font-size:clamp(2.4rem,10vw,3.3rem)" id="title">Votre commande</h1>
+  <div class="orn"><i></i></div>
+  <div class="card">
+    <p class="caps" id="sub"></p>
+    <p class="price gold" id="price"></p>
+    <p class="hint" id="note"></p>
+    <ul class="inc" id="inc"></ul>
+    <label class="opt" style="justify-content:flex-start;text-align:left;margin-top:14px"><input type="checkbox" id="cgv"><div><span>J'accepte les <a href="#" id="cgv-link" target="_blank" rel="noopener" style="color:var(--gold-deep)">conditions générales de vente</a>. Le code d'accès m'est envoyé immédiatement par e-mail : je demande l'accès tout de suite et reconnais perdre mon droit de rétractation.</span></div></label>
+    <button class="btn fill" id="pay" style="margin-top:16px" disabled>Payer en ligne</button>
+    <p class="pay-logos">Paiement sécurisé par Stripe · carte bancaire, PayPal, Apple Pay</p>
+    <p class="msg bad" id="msg"></p>
+  </div>
+  <a class="link" href="./#formules" style="display:inline-block;margin-top:22px">← Retour aux formules</a>
+  <p class="legal-foot" style="margin-top:14px"><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a></p>
+</div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const shop = (CFG && CFG.shop) || {};
+const F = {
+  standard: { title: 'Formule Essentielle', price: shop.priceStandard, note: shop.priceStandardNote, inc: ["Messages vocaux de vos invités (20 s)", "Photos et vidéos envoyées depuis leur téléphone", "Film souvenir MP4 : votre répondeur, les messages et les photos", "Tout télécharger en un clic · conservé 90 jours après le mariage"] },
+  capsule: { title: 'Formule Time capsule', price: shop.priceCapsule, note: shop.priceCapsuleNote, inc: ["Tout ce que contient la formule Essentielle", "Time capsule : tous vos souvenirs vous sont renvoyés un an après le mariage", "Livraison par e-mail, par sécurité à deux adresses"] },
+  upgrade: { title: 'Ajouter la time capsule', price: shop.priceUpgrade, note: '', inc: ["Ajoute la time capsule à un livre d'or déjà créé", "Vos souvenirs vous sont renvoyés un an après le mariage"] },
+};
+const kind = (new URLSearchParams(location.search).get('f') || 'standard');
+const p = F[kind];
+if (!p || !shop.onlinePay) { document.querySelector('.card').innerHTML = '<p class="lead">Le paiement en ligne n\'est pas encore ouvert.</p><p class="hint">Retrouvez le livre d\'or sur notre boutique Etsy.</p>'; }
+else {
+  $('title').textContent = p.title; $('sub').textContent = 'Votre commande'; $('price').textContent = p.price; $('note').textContent = p.note || '';
+  $('inc').innerHTML = p.inc.map(x => '<li></li>').join(''); [...$('inc').children].forEach((li, i) => li.textContent = p.inc[i]);
+  if (CFG.legal && CFG.legal.cgvUrl) $('cgv-link').href = CFG.legal.cgvUrl;
+  $('cgv').onchange = () => $('pay').disabled = !$('cgv').checked;
+  $('pay').onclick = async () => {
+    $('pay').disabled = true; $('pay').textContent = 'Redirection vers le paiement…'; $('msg').textContent = '';
+    try { const r = await fnCall('shop', { action: 'checkout', kind }); location.href = r.url; }
+    catch (e) { $('msg').textContent = e.message === 'paiement_non_configure' ? 'Le paiement en ligne n\'est pas encore disponible.' : 'Le paiement est momentanément indisponible. Réessayez dans un instant.'; $('pay').disabled = false; $('pay').textContent = 'Payer en ligne'; }
+  };
+}
+</script>
+</body>
+</html>

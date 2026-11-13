@@ -248,8 +248,8 @@ function buy(id, payUrl, price, note) {
 }
 if (CFG.legal && CFG.legal.cgvUrl) document.getElementById('legal').insertAdjacentHTML('beforeend', '<a href="' + CFG.legal.cgvUrl + '">Conditions de vente</a>');
 if (shop.etsyShopUrl) { const e = document.getElementById('etsy-foot'); e.href = shop.etsyShopUrl; e.hidden = false; document.getElementById('etsy-line').href = shop.etsyShopUrl; }
-buy('std', shop.payUrlStandard, shop.priceStandard, shop.priceStandardNote);
-buy('cap', shop.payUrlCapsule, shop.priceCapsule, shop.priceCapsuleNote);
+buy('std', shop.onlinePay && shop.payUrlStandard, shop.priceStandard, shop.priceStandardNote);
+buy('cap', shop.onlinePay && shop.payUrlCapsule, shop.priceCapsule, shop.priceCapsuleNote);
 </script>
 </body>
 </html>
