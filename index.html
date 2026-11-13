@@ -219,6 +219,7 @@
   <span class="brand script gold">Après le bip</span>
   Le livre d'or sonore et photo de votre mariage
   <div style="margin-top:14px"><a href="acces.html" style="color:var(--gold-deep)">J'ai un code</a></div>
+  <div class="legal-foot" id="legal" style="margin-top:14px"><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a></div>
 </footer>
 
 <script src="vendor/qrcode.min.js"></script>
@@ -241,6 +242,7 @@ function buy(id, payUrl, price, note) {
   if (payUrl) btns.push('<a class="btn ' + (btns.length ? '' : 'fill') + '" href="' + payUrl + '">Payer en ligne</a>');
   box.innerHTML = btns.length ? btns.join('') + '<p class="soon">Votre code d\'accès vous est remis aussitôt après l\'achat.</p>' : '<p class="soon">Bientôt disponible à l\'achat.</p>';
 }
+if (CFG.legal && CFG.legal.cgvUrl) document.getElementById('legal').insertAdjacentHTML('beforeend', '<a href="' + CFG.legal.cgvUrl + '">Conditions de vente</a>');
 buy('std', shop.payUrlStandard, shop.priceStandard, shop.priceStandardNote);
 buy('cap', shop.payUrlCapsule, shop.priceCapsule, shop.priceCapsuleNote);
 </script>

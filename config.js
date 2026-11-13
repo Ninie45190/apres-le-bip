@@ -4,6 +4,8 @@ const CFG = {
   key: 'sb_publishable_2G0JoQ1tdpPmY63YukloJQ_eNBA8KNS',
   maxVideoMB: 50,   // doit correspondre à la limite du serveur (offre gratuite Supabase : 50 Mo par fichier)
   maxPhotoMB: 15,
+  // Documents juridiques : renseigner cgvUrl: 'cgv.html' une fois les conditions de vente publiées (affiche le lien et la case de renonciation à la rétractation)
+  legal: { cgvUrl: '' },
   // Boutique : laissez vide ce qui n'est pas encore prêt (le bouton correspondant n'apparaît pas)
   shop: {
     etsyUrl: '',            // adresse de votre annonce Etsy
