@@ -9,7 +9,9 @@ const CFG = {
     etsyUrl: '',            // adresse de votre annonce Etsy
     payUrlStandard: '',     // lien de paiement en ligne (formule essentielle)
     payUrlCapsule: '',      // lien de paiement en ligne (formule avec time capsule)
-    priceStandard: '',      // ex. « 29 € »
-    priceCapsule: ''        // ex. « 39 € »
+    priceStandard: '29,90 €',                                  // prix affiché (formule essentielle)
+    priceStandardNote: 'Prix de lancement · puis 39,90 €',     // petite mention sous le prix (laisser vide si inutile)
+    priceCapsule: '',                                          // ex. « 49,90 € »
+    priceCapsuleNote: ''
   }
 };

@@ -173,6 +173,7 @@
       <div class="card plan">
         <h3>Essentielle</h3>
         <div class="price gold" id="price-std"></div>
+        <p class="soon" id="note-std" style="margin:0"></p>
         <ul>
           <li>QR code et carte à imprimer, ou affichage sur écran</li>
           <li>Messages vocaux de 20 secondes</li>
@@ -186,6 +187,7 @@
       <div class="card plan">
         <h3>Avec time capsule</h3>
         <div class="price gold" id="price-cap"></div>
+        <p class="soon" id="note-cap" style="margin:0"></p>
         <ul>
           <li>Tout ce que contient la formule essentielle</li>
           <li>Vos souvenirs conservés jusqu'à la date choisie</li>
@@ -231,16 +233,17 @@ try { const q = qrcode(0, 'M'); q.addData(location.origin + '/'); q.make(); docu
 
 // Boutons d'achat : n'affichés que s'ils sont configurés dans config.js (CFG.shop)
 const shop = (typeof CFG !== 'undefined' && CFG.shop) || {};
-function buy(id, payUrl, price) {
-  const box = document.getElementById('buy-' + id), pr = document.getElementById('price-' + (id === 'std' ? 'std' : 'cap'));
+function buy(id, payUrl, price, note) {
+  const box = document.getElementById('buy-' + id), pr = document.getElementById('price-' + id);
   if (price) pr.textContent = price;
+  const nt = document.getElementById('note-' + id); if (nt && price && note) nt.textContent = note;
   const btns = [];
   if (shop.etsyUrl) btns.push('<a class="btn fill" href="' + shop.etsyUrl + '" target="_blank" rel="noopener">Acheter sur Etsy</a>');
   if (payUrl) btns.push('<a class="btn ' + (btns.length ? '' : 'fill') + '" href="' + payUrl + '">Payer en ligne</a>');
   box.innerHTML = btns.length ? btns.join('') + '<p class="soon">Votre code d\'accès vous est remis aussitôt après l\'achat.</p>' : '<p class="soon">Bientôt disponible à l\'achat.</p>';
 }
-buy('std', shop.payUrlStandard, shop.priceStandard);
-buy('cap', shop.payUrlCapsule, shop.priceCapsule);
+buy('std', shop.payUrlStandard, shop.priceStandard, shop.priceStandardNote);
+buy('cap', shop.payUrlCapsule, shop.priceCapsule, shop.priceCapsuleNote);
 </script>
 </body>
 </html>
