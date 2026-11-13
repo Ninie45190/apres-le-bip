@@ -25,6 +25,16 @@ const Montage = (() => {
     return out;
   }
 
+  // Le « bip » de fin de répondeur (même son que celui entendu par les invités : 880 Hz, 0,6 s)
+  function bipPcm() {
+    const sr = SR(), n = Math.round(0.6 * sr), out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, env = t < 0.03 ? t / 0.03 : t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.15);
+      out[i] = Math.sin(2 * Math.PI * 880 * t) * 0.35 * env;
+    }
+    return out;
+  }
+
   /* ---------- Plan du montage ----------
      spec : { names, date, greeting: Blob|null, voices: [{ name, blob }], photos: [{ url, guest }] } */
   const norm = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -41,7 +51,12 @@ const Montage = (() => {
       if (onProgress) onProgress(i / Math.max(1, items.length), 'Analyse du son ' + (i + 1) + ' / ' + items.length + '…');
       try {
         const p = await pcm(items[i].blob), dur = p.length / SR();
-        if (items[i].kind === 'greeting') { segs.push({ ...items[i], start: 0, end: dur, dur }); introEnd = Math.max(INTRO, dur + 1.2); t = introEnd; }
+        if (items[i].kind === 'greeting') {
+          segs.push({ ...items[i], start: 0, end: dur, dur });
+          const bip = bipPcm(), bs = dur + 0.2;                       // le bip arrive juste après le répondeur
+          segs.push({ kind: 'bip', label: '', data: bip, start: bs, end: bs + bip.length / SR(), dur: bip.length / SR() });
+          introEnd = Math.max(INTRO, bs + bip.length / SR() + 0.9); t = introEnd;
+        }
         else { if (!t) t = introEnd; segs.push({ ...items[i], start: t, end: t + dur, dur }); t += dur + GAP; }
       } catch (e) { skipped++; }
     }
@@ -173,7 +188,7 @@ const Montage = (() => {
     }
     // légende du message en cours
     const seg = tl.segs.find(g => t >= g.start && t <= g.end);
-    if (seg) {
+    if (seg && seg.label) {
       const a = Math.max(0, Math.min(1, (t - seg.start) / .5, (seg.end - t) / .5));
       ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.font = 'italic 400 36px "Cormorant Garamond", serif';
       ctx.fillText(seg.label, W / 2, 664);
@@ -202,7 +217,7 @@ const Montage = (() => {
     async function startSeg(seg) {
       if (started.has(seg)) return; started.add(seg);
       try {
-        const p = await pcm(seg.blob), buf = ac.createBuffer(1, p.length, ac.sampleRate); buf.copyToChannel(p, 0);
+        const p = seg.data || await pcm(seg.blob), buf = ac.createBuffer(1, p.length, ac.sampleRate); buf.copyToChannel(p, 0);
         const src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination);
         src.start(Math.max(ac.currentTime, t0 + seg.start)); sources.push(src);
       } catch (e) {}
@@ -253,7 +268,7 @@ const Montage = (() => {
       for (const g of tl.segs) {
         const gs = Math.round(g.start * sr), ge = gs + Math.round(g.dur * sr);
         if (ge <= off || gs >= off + n) continue;
-        if (!cur || cur.seg !== g) cur = { seg: g, data: await pcm(g.blob) };
+        if (!cur || cur.seg !== g) cur = { seg: g, data: g.data || await pcm(g.blob) };
         const from = Math.max(off, gs), to = Math.min(off + n, ge);
         for (let i = from; i < to; i++) chunk[i - off] = cur.data[i - gs] || 0;
       }
