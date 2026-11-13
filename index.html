@@ -43,17 +43,15 @@
   .phone .qrm { width: 78px; height: 78px; margin-top: auto; padding: 5px; background: #fff; border: 1px solid var(--line); }
   .phone .qrm svg { display: block; width: 100%; height: 100%; }
   .polaroid { position: absolute; background: #fff; padding: 9px 9px 30px; box-shadow: 0 18px 30px -16px rgba(80,60,20,.55); z-index: 1; text-align: center; }
-  .polaroid img { display: block; width: 128px; height: 100px; object-fit: cover; background: #efe8d8; }
+  .polaroid img { display: block; width: 148px; height: 112px; object-fit: cover; background: #efe8d8; }
   .polaroid b { display: block; font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: 1.15rem; color: var(--gold-deep); margin-top: 3px; line-height: 1; }
-  .p1 { left: -10px; top: 34px; transform: rotate(-9deg); }
-  .p4 { right: -12px; top: 0; transform: rotate(7deg); }
-  .p2 { right: -8px; top: 168px; transform: rotate(8deg); z-index: 3; }
-  .p3 { left: 6px; top: 232px; transform: rotate(-4deg); z-index: 3; }
-  .p5 { right: 12px; bottom: -8px; transform: rotate(-6deg); z-index: 3; }
+  .p1 { left: -10px; top: 64px; transform: rotate(-9deg); }
+  .p2 { right: -8px; top: 150px; transform: rotate(8deg); z-index: 3; }
+  .p3 { left: 8px; bottom: 6px; transform: rotate(5deg); z-index: 3; }
   .stage { margin-bottom: 64px; }
   .stage-note { position: absolute; left: 0; right: 0; bottom: -62px; text-align: center; font-size: .7rem; color: var(--soft); letter-spacing: .04em; }
-  @media (max-width: 420px) { .p1 { left: -16px; } .p4, .p2 { right: -16px; } }
-  @media (max-width: 520px) { .polaroid { padding: 6px 6px 22px; } .polaroid img { width: 104px; height: 80px; } .polaroid b { font-size: 1rem; } .p2 { top: 186px; } .p3 { top: 250px; } }
+  @media (max-width: 420px) { .p2 { right: -16px; } }
+  @media (max-width: 520px) { .polaroid { padding: 6px 6px 22px; } .polaroid img { width: 116px; height: 88px; } .polaroid b { font-size: 1rem; } .p1 { top: 4px; left: -12px; z-index: 3; } .p2 { top: 176px; } .p3 { bottom: 14px; } }
 
   section.s { padding: 64px 0; }
   section.s h2 { font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: clamp(2.4rem, 7vw, 3.6rem); text-align: center; margin-bottom: 6px; line-height: 1.15; }
@@ -122,11 +120,9 @@
       <p class="tiny">Pour les mariés et leurs invités · Un smartphone suffit</p>
     </div>
     <div class="stage" aria-hidden="true">
-      <div class="polaroid p1"><img src="images/exemple-selfie-soiree.jpg" alt="" width="128" height="100" loading="eager"><b>Élodie</b></div>
-      <div class="polaroid p4"><img src="images/exemple-cocktail.jpg" alt="" width="128" height="100" loading="eager"><b>Léa</b></div>
-      <div class="polaroid p2"><img src="images/exemple-ceremonie.jpg" alt="" width="128" height="100" loading="eager"><b>Marc</b></div>
-      <div class="polaroid p3"><img src="images/exemple-danse.jpg" alt="" width="128" height="100" loading="eager"><b>Zoé</b></div>
-      <div class="polaroid p5"><img src="images/exemple-diner.jpg" alt="" width="128" height="100" loading="eager"><b>Hugo</b></div>
+      <div class="polaroid p1"><img src="images/exemple-selfie-miroir.jpg" alt="" width="148" height="112" loading="eager"><b>Élodie</b></div>
+      <div class="polaroid p2"><img src="images/exemple-ceremonie.jpg" alt="" width="148" height="112" loading="eager"><b>Marc</b></div>
+      <div class="polaroid p3"><img src="images/exemple-selfie-groupe.jpg" alt="" width="148" height="112" loading="eager"><b>Zoé</b></div>
       <div class="phone">
         <p class="caps">12 juin 2027</p>
         <p class="nm gold">Camille<br>&amp; Julien</p>
