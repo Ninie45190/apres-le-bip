@@ -75,7 +75,7 @@
           <div><label class="caps" for="n1">Marié(e)</label><input type="text" id="n1" placeholder="Camille" autocomplete="off" maxlength="40"></div>
           <div><label class="caps" for="n2">Marié(e)</label><input type="text" id="n2" placeholder="Julien" autocomplete="off" maxlength="40"></div>
         </div>
-        <div class="field"><label class="caps" for="dt">Date du mariage</label><input type="date" id="dt"></div>
+        <div class="field"><label class="caps" for="dt">Date du mariage</label><input type="date" id="dt"><p class="hint" id="dt-hint" style="margin-top:6px"></p></div>
         <div class="field" style="margin-top:6px">
           <label class="caps" for="e1">Où envoyer votre lien privé et votre code ?</label>
           <input type="email" id="e1" placeholder="votre@email.fr" autocomplete="email">
@@ -88,7 +88,7 @@
         <p class="caps" style="margin-bottom:4px">Ce que vos invités pourront faire</p>
         <label class="opt"><input type="checkbox" id="o-audio" checked><div><b>Laisser un message vocal</b><span>Ils entendent votre répondeur, puis parlent après le bip.</span></div></label>
         <label class="opt"><input type="checkbox" id="o-media" checked><div><b>Envoyer photos et vidéos</b><span>Sur le moment, ou en lot en fin de soirée.</span></div></label>
-        <label class="opt"><input type="checkbox" id="o-screen"><div><b>Diffuser sur un écran</b><span>Au lieu d'imprimer, affichez le QR code sur une télé. Les photos prises sur le moment y défilent en direct ; les lots et les vidéos restent privés.</span></div></label>
+        <label class="opt"><input type="checkbox" id="o-screen"><div><b>Diffuser sur un écran</b><span>Au lieu d'imprimer, affichez le QR code sur une télé. Les photos prises sur le moment y défilent en direct.</span></div></label>
       </div>
       <div id="gblock">
         <div class="orn"><i></i></div>
@@ -141,12 +141,20 @@
           <div id="capsule" style="margin-top:22px;border-top:1px solid rgba(176,141,60,.25);padding-top:18px" hidden>
             <p class="caps">Time capsule</p>
             <div id="cap-up" hidden>
-              <p class="hint" style="margin-top:8px">Faites-vous envoyer vos souvenirs plus tard, à la date de votre choix.</p>
-              <button class="link" id="cap-up-btn" style="padding-left:0">J'ai un code time capsule</button>
+              <p class="hint" style="margin-top:8px">Vous avez changé d'avis ? Faites-vous envoyer vos souvenirs <b>un an après votre mariage</b>, pour votre premier anniversaire.</p>
+              <div class="tools" style="justify-content:flex-start;margin-top:12px;gap:10px 18px">
+                <a class="btn fill" id="cap-buy" href="#" target="_blank" rel="noopener" style="padding:12px 20px" hidden>Ajouter la time capsule</a>
+                <button class="link" id="cap-up-btn" style="padding-left:0">J'ai un code</button>
+              </div>
+              <p class="hint" id="cap-price" style="margin-top:6px"></p>
+              <div id="cap-code-box" hidden style="margin-top:8px">
+                <input type="text" id="cap-code" placeholder="BIP-••••-••••-••••" autocomplete="off" spellcheck="false" style="text-transform:uppercase;letter-spacing:.1em;font-size:1.1rem">
+                <div class="tools" style="margin-top:10px"><button class="btn fill" id="cap-code-ok" style="padding:12px 20px">Valider mon code</button></div>
+              </div>
             </div>
             <div id="cap-form" hidden>
-              <p class="hint" style="margin:8px 0 12px">Vos souvenirs sont gardés au chaud et vous sont envoyés à la date choisie, <b>par e-mail à deux adresses</b> par sécurité.</p>
-              <label class="caps" for="cap-date" style="display:block">Date de livraison</label><input type="date" id="cap-date">
+              <p class="hint" style="margin:8px 0 6px">Vos souvenirs sont conservés, puis vous sont envoyés <b>un an après votre mariage</b>, par e-mail à deux adresses par sécurité.</p>
+              <p class="lead" id="cap-when" style="font-size:1.1rem;margin:4px 0 8px"></p>
               <label class="opt" style="padding:10px 0"><input type="checkbox" id="cap-audio" checked><div><span>Conserver les messages vocaux</span></div></label>
               <label class="opt" style="padding:10px 0"><input type="checkbox" id="cap-media" checked><div><span>Conserver les photos et vidéos</span></div></label>
               <input type="email" id="cap-e1" placeholder="1re adresse e-mail"><input type="email" id="cap-e2" placeholder="2e adresse e-mail (différente)">
@@ -277,7 +285,7 @@ function refreshSetup() {
   $('gblock').hidden = !a;
   const mails = [$('e1').value.trim(), $('e2').value.trim()].filter(Boolean);
   const mailsOk = mails.length > 0 && mails.every(validEmail);
-  const namesOk = $('n1').value.trim() && $('n2').value.trim();
+  const namesOk = $('n1').value.trim() && $('n2').value.trim() && $('dt').value;
   $('go').disabled = !(CONFIGURED && (replacing ? hasGreeting() : (namesOk && mailsOk && (a || m) && (!a || hasGreeting()))));
   $('gphone-btn').disabled = !(replacing || namesOk);
   if (phoneMode) ['n1', 'n2', 'dt', 'o-audio', 'o-media', 'o-screen'].forEach(i => $(i).disabled = true);
@@ -467,7 +475,8 @@ function applyRO() {
 
 /* ---------- Time capsule ---------- */
 let capState = null;
-const plusYear = () => { const d = info.date ? new Date(info.date + 'T12:00:00') : new Date(); d.setFullYear(d.getFullYear() + 1); const min = new Date(Date.now() + 8 * 864e5); return (d < min ? new Date(new Date().setFullYear(new Date().getFullYear() + 1)) : d).toISOString().slice(0, 10); };
+/* Livraison = date du mariage + 1 an (le 29 février devient le 28, comme côté serveur) */
+const anniversary = d => { if (!d) return ''; const [y, m, j] = d.split('-').map(Number); return (y + 1) + '-' + String(m).padStart(2, '0') + '-' + String(m === 2 && j === 29 ? 28 : j).padStart(2, '0'); };
 function capInit() {
   $('capsule').hidden = RO; $('cap-msg').textContent = '';
   if (RO) return;
@@ -481,31 +490,39 @@ async function loadCapsule() {
 function renderCapsule(edit) {
   const c = capState, configured = !!(c && c.capsule_date && c.capsule_emails && c.capsule_emails.length === 2);
   $('cap-form').hidden = configured && !edit; $('cap-done').hidden = !(configured && !edit);
-  $('cap-date').min = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+  const when = c && c.capsule_date ? c.capsule_date : anniversary(info.date);
+  $('cap-when').textContent = when ? 'Livraison prévue le ' + fmtDate(when) + '.' : '';
   if (configured) {
-    $('cap-date').value = c.capsule_date; $('cap-audio').checked = c.capsule_audio; $('cap-media').checked = c.capsule_media;
+    $('cap-audio').checked = c.capsule_audio; $('cap-media').checked = c.capsule_media;
     $('cap-e1').value = c.capsule_emails[0]; $('cap-e2').value = c.capsule_emails[1];
     const what = [c.capsule_audio && 'les messages vocaux', c.capsule_media && 'les photos et vidéos'].filter(Boolean).join(' et ');
     $('cap-sum').textContent = 'Livraison le ' + fmtDate(c.capsule_date) + (c.sent ? ' (déjà envoyée ✓)' : '') + ', par e-mail à ' + c.capsule_emails.join(' et ') + '. Conservé : ' + what + '.';
-  } else if (!$('cap-date').value) { $('cap-date').value = plusYear(); $('cap-msg').innerHTML = 'À programmer : sans date, vos souvenirs seront supprimés ' + RETENTION_DAYS + ' jours après le mariage.'; }
+  } else $('cap-msg').innerHTML = 'À programmer : sans cela, vos souvenirs seront supprimés ' + RETENTION_DAYS + ' jours après le mariage.';
 }
 $('cap-edit').onclick = () => renderCapsule(true);
 $('cap-save').onclick = async () => {
   const e1 = $('cap-e1').value.trim(), e2 = $('cap-e2').value.trim(), msg = $('cap-msg');
-  if (!$('cap-date').value) return msg.textContent = 'Choisissez une date de livraison.';
   if (!validEmail(e1) || !validEmail(e2)) return msg.textContent = 'Saisissez deux adresses e-mail valides.';
   if (e1.toLowerCase() === e2.toLowerCase()) return msg.textContent = 'Les deux adresses doivent être différentes (c\'est la sécurité).';
   if (!$('cap-audio').checked && !$('cap-media').checked) return msg.textContent = 'Choisissez ce qui doit être conservé.';
   $('cap-save').disabled = true; msg.textContent = '';
   try {
-    await api('set_capsule', { p_event: ev.id, p_secret: ev.secret, p_date: $('cap-date').value, p_audio: $('cap-audio').checked, p_media: $('cap-media').checked, p_emails: [e1, e2] });
+    await api('set_capsule', { p_event: ev.id, p_secret: ev.secret, p_audio: $('cap-audio').checked, p_media: $('cap-media').checked, p_emails: [e1, e2] });
     await loadCapsule(); msg.innerHTML = '<span class="ok">Time capsule programmée ✓</span>';
   } catch (e) { msg.textContent = e.message; }
   $('cap-save').disabled = false;
 };
-$('cap-up-btn').onclick = async () => {
-  const code = (prompt('Entrez votre code time capsule :') || '').trim(); if (!code) return;
-  try { await api('apply_capsule_code', { p_event: ev.id, p_secret: ev.secret, p_code: code }); info.capsule = true; persist(); capInit(); }
+
+/* Achat de la time capsule depuis l'application (si les mariés changent d'avis) */
+(function () {
+  const shop = (CFG && CFG.shop) || {}, url = shop.payUrlUpgrade || shop.etsyUrlUpgrade || shop.etsyShopUrl;
+  if (url) { $('cap-buy').href = url; $('cap-buy').hidden = false; }
+  if (shop.priceUpgrade) $('cap-price').textContent = shop.priceUpgrade + ' · un code vous est remis après l\'achat, à saisir ci-dessus (« J\'ai un code »).';
+})();
+$('cap-up-btn').onclick = () => { $('cap-code-box').hidden = false; $('cap-code').focus(); };
+$('cap-code-ok').onclick = async () => {
+  const code = $('cap-code').value.trim(); if (!code) return;
+  try { await api('apply_capsule_code', { p_event: ev.id, p_secret: ev.secret, p_code: code }); info.capsule = true; persist(); $('cap-code-box').hidden = true; capInit(); }
   catch (e) { $('cap-msg').textContent = 'Code invalide ou déjà utilisé.'; }
 };
 
@@ -777,6 +794,7 @@ $('copylink').onclick = async () => {
     if (!c || !c.valid || c.used) { try { sessionStorage.removeItem(PREFIX + 'code'); } catch (e) {} location.replace('acces.html'); return; }
     purchaseCode = code; purchaseKind = c.kind;
     $('codeinfo').textContent = 'Code validé ✓ — ' + (c.kind === 'capsule' ? 'formule avec time capsule' : 'formule standard');
+    if (c.kind === 'capsule') $('dt-hint').textContent = 'Votre time capsule vous sera livrée un an après cette date.';
   } catch (e) { $('err').textContent = 'Connexion impossible. Rechargez la page.'; }
   $('setup').hidden = false;
   refreshSetup();

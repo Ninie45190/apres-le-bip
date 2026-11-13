@@ -15,6 +15,9 @@ const CFG = {
     priceStandard: '29,90 €',                                  // prix affiché (formule essentielle)
     priceStandardNote: 'Prix de lancement · puis 39,90 €',     // petite mention sous le prix (laisser vide si inutile)
     priceCapsule: '49,90 €',                                   // prix affiché (formule avec time capsule)
-    priceCapsuleNote: 'Prix de lancement · puis 59,90 €'
+    priceCapsuleNote: 'Prix de lancement · puis 59,90 €',
+    etsyUrlUpgrade: '',     // annonce Etsy « ajouter la time capsule » (quand elle existera)
+    payUrlUpgrade: '',      // lien de paiement en ligne « ajouter la time capsule »
+    priceUpgrade: '24,90 €' // prix affiché dans l'application
   }
 };

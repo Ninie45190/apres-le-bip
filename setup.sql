@@ -19,7 +19,7 @@ create table if not exists events (
   opt_screen boolean not null default false,   -- diffusion sur un écran (QR code + photos en direct)
   mail_count int not null default 0,           -- nombre d'e-mails envoyés (limite anti-abus)
   opt_capsule boolean not null default false,  -- time capsule achetée
-  capsule_date date,                           -- date de livraison
+  capsule_date date,                           -- date de livraison = date du mariage + 1 an
   capsule_audio boolean not null default true, -- conserver les messages vocaux
   capsule_media boolean not null default true, -- conserver les photos et vidéos
   capsule_emails text[],                       -- 2 adresses distinctes (seule donnée personnelle conservée, uniquement pour la livraison)
@@ -114,13 +114,14 @@ language sql security definer set search_path = public as $$
   union all select false, false, null where not exists (select 1 from codes c where c.code = norm_code(p_code));
 $$;
 
--- Création d'un livre d'or : un code d'achat valide et inutilisé est obligatoire (l'annonce peut être enregistrée plus tard depuis un smartphone)
+-- Création d'un livre d'or : un code d'achat valide et inutilisé et la date du mariage sont obligatoires (l'annonce peut être enregistrée plus tard depuis un smartphone)
 create or replace function create_event(p_id text, p_secret text, p_n1 text, p_n2 text, p_date date, p_greeting text, p_mime text, p_code text, p_opt_audio boolean default true, p_opt_media boolean default true, p_opt_screen boolean default false)
 returns void language plpgsql security definer set search_path = public, extensions as $$
 declare v_kind text;
 begin
   if p_id !~ '^[a-z0-9]{6,16}$' or length(p_secret) < 8 then raise exception 'Identifiants invalides'; end if;
   if length(p_n1) > 60 or length(p_n2) > 60 or length(p_greeting) > 2500000 then raise exception 'Données trop longues'; end if;
+  if p_date is null then raise exception 'La date du mariage est obligatoire'; end if;
   if not p_opt_audio and not p_opt_media then raise exception 'Activez au moins une option'; end if;
   update codes set used_at = now(), event_id = p_id where code = norm_code(p_code) and used_at is null and kind in ('standard','capsule') returning kind into v_kind;
   if v_kind is null then raise exception 'Code invalide ou déjà utilisé'; end if;
@@ -181,14 +182,17 @@ begin
   update events set greeting = decode(p_greeting, 'base64'), greeting_mime = p_mime where id = p_event;
 end $$;
 
--- Time capsule : programmation
-create or replace function set_capsule(p_event text, p_secret text, p_date date, p_audio boolean, p_media boolean, p_emails text[])
+-- Time capsule : programmation. La livraison a TOUJOURS lieu un an après la date du mariage.
+create or replace function set_capsule(p_event text, p_secret text, p_audio boolean, p_media boolean, p_emails text[])
 returns void language plpgsql security definer set search_path = public as $$
-declare e text;
+declare e text; v_wedding date; v_date date;
 begin
   if not check_secret(p_event, p_secret) then raise exception 'Code incorrect'; end if;
-  if not exists (select 1 from events where id = p_event and opt_capsule) then raise exception 'Time capsule non activée'; end if;
-  if p_date is null or p_date < current_date + 7 or p_date > current_date + 3650 then raise exception 'Date de livraison invalide (entre 7 jours et 10 ans)'; end if;
+  select wedding_date into v_wedding from events where id = p_event and opt_capsule;
+  if not found then raise exception 'Time capsule non activée'; end if;
+  if v_wedding is null then raise exception 'La date du mariage est nécessaire'; end if;
+  v_date := (v_wedding + interval '1 year')::date;
+  if v_date < current_date then raise exception 'Le premier anniversaire de ce mariage est déjà passé'; end if;
   if not (p_audio or p_media) then raise exception 'Choisissez les sons et/ou les photos'; end if;
   if p_emails is null or array_length(p_emails, 1) is distinct from 2 or lower(p_emails[1]) = lower(p_emails[2]) then raise exception 'Deux adresses e-mail différentes sont nécessaires'; end if;
   foreach e in array p_emails loop
@@ -196,8 +200,8 @@ begin
   end loop;
   update events set capsule_audio = p_audio, capsule_media = p_media, capsule_emails = array[lower(trim(p_emails[1])), lower(trim(p_emails[2]))],
     capsule_token = coalesce(capsule_token, 'c' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)),
-    capsule_sent_at = case when capsule_date is distinct from p_date then null else capsule_sent_at end,
-    capsule_date = p_date
+    capsule_sent_at = case when capsule_date is distinct from v_date then null else capsule_sent_at end,
+    capsule_date = v_date
   where id = p_event;
 end $$;
 
