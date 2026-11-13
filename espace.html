@@ -320,7 +320,7 @@ async function createEventNow(b64, mime) {
     catch (e) { if (i === 3 || !/duplicate|unique/i.test(e.message)) throw e; }
   }
 }
-function persist() { if (!RO) localStorage.setItem(PREFIX + 'event', JSON.stringify({ ...ev, info })); location.hash = ev.id + '.' + ev.secret; }
+function persist() { if (!RO) { const v = JSON.stringify({ ...ev, info }); try { localStorage.setItem(PREFIX + 'event', v); } catch (e) {} try { sessionStorage.setItem(PREFIX + 'event', v); } catch (e) {} } }
 
 $('gphone-btn').onclick = async () => {
   $('err').textContent = '';
@@ -780,24 +780,36 @@ $('copylink').onclick = async () => {
 
 /* ---------- Démarrage ---------- */
 (async () => {
+  // 1) lien explicite (#id.secret) : on ouvre ce livre d'or puis on nettoie l'adresse
   const h = location.hash.slice(1).match(/^([a-z0-9]{6,16})\.([a-z0-9]{8,})$/i);
-  if (h && CONFIGURED) { await load(h[1].toLowerCase(), h[2].toLowerCase()); if (!ev) location.replace('acces.html#retrouver'); return; }
-  try {
-    const s = JSON.parse(localStorage.getItem(PREFIX + 'event') || 'null');
-    if (s && CONFIGURED) { await load(s.id, s.secret); if (ev) return; }
-  } catch (e) {}
-  // Pas de livre d'or : la création exige un code d'achat validé sur la page d'accès
+  if (h && CONFIGURED) {
+    await load(h[1].toLowerCase(), h[2].toLowerCase());
+    if (!ev) { location.replace('acces.html#retrouver'); return; }
+    if (!RO) history.replaceState(null, '', location.pathname + location.search);
+    return;
+  }
+  // 2) un code d'achat vient d'être validé : on démarre une NOUVELLE création
   let code = ''; try { code = sessionStorage.getItem(PREFIX + 'code') || ''; } catch (e) {}
-  if (!CONFIGURED || !code) { location.replace('acces.html'); return; }
-  try {
-    const c = (await api('check_code', { p_code: code }))[0];
-    if (!c || !c.valid || c.used) { try { sessionStorage.removeItem(PREFIX + 'code'); } catch (e) {} location.replace('acces.html'); return; }
-    purchaseCode = code; purchaseKind = c.kind;
-    $('codeinfo').textContent = 'Code validé ✓ — ' + (c.kind === 'capsule' ? 'formule avec time capsule' : 'formule standard');
-    if (c.kind === 'capsule') $('dt-hint').textContent = 'Votre time capsule vous sera livrée un an après cette date.';
-  } catch (e) { $('err').textContent = 'Connexion impossible. Rechargez la page.'; }
-  $('setup').hidden = false;
-  refreshSetup();
+  if (code && CONFIGURED) {
+    try {
+      const c = (await api('check_code', { p_code: code }))[0];
+      if (c && c.valid && !c.used && c.kind !== 'upgrade') {
+        purchaseCode = code; purchaseKind = c.kind;
+        $('codeinfo').textContent = 'Code validé ✓ — ' + (c.kind === 'capsule' ? 'formule avec time capsule' : 'formule standard');
+        if (c.kind === 'capsule') $('dt-hint').textContent = 'Votre time capsule vous sera livrée un an après cette date.';
+        $('setup').hidden = false; refreshSetup(); return;
+      }
+      try { sessionStorage.removeItem(PREFIX + 'code'); } catch (e) {}
+    } catch (e) { $('err').textContent = 'Connexion impossible. Rechargez la page.'; $('setup').hidden = false; refreshSetup(); return; }
+  }
+  // 3) sinon, le livre d'or enregistré sur cet appareil
+  for (const st of [localStorage, sessionStorage]) {
+    try {
+      const s = JSON.parse(st.getItem(PREFIX + 'event') || 'null');
+      if (s && CONFIGURED) { await load(s.id, s.secret); if (ev) return; }
+    } catch (e) {}
+  }
+  location.replace('acces.html');
 })();
 </script>
 </body>
