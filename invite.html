@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laissez-nous un message</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: grid; place-items: center; padding: 22px 16px; }
+  .card { width: 100%; max-width: 440px; padding: 48px 26px 40px; text-align: center; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .names { font-size: clamp(2.6rem, 12vw, 3.6rem); }
+  .timer { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; letter-spacing: .08em; }
+  .note { color: var(--gold-deep); font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="card fade">
+
+  <div class="step" id="s-load">
+    <p class="caps">Un instant</p>
+    <h1 class="script gold names" id="load-t">Connexion…</h1>
+    <p class="hint" id="load-h">Nous cherchons les mariés.</p>
+    <button class="btn" id="retry" hidden>Réessayer</button>
+  </div>
+
+  <div class="step" id="s-welcome" hidden>
+    <p class="caps" id="w-date"></p>
+    <h1 class="script gold names" id="w-names"></h1>
+    <div class="orn" style="margin:2px auto"><i></i></div>
+    <p class="lead">Vous êtes invité(e) à laisser un message aux mariés.</p>
+    <p class="hint">Mettez le son de votre téléphone.</p>
+    <button class="btn fill" id="pick">Décrocher</button>
+    <p class="note" id="w-note" hidden></p>
+  </div>
+
+  <div class="step" id="s-listen" hidden>
+    <p class="caps">Message des mariés</p>
+    <div class="bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <p class="lead">« Bonjour… »</p>
+    <button class="link" id="skip">Passer</button>
+  </div>
+
+  <div class="step" id="s-rec" hidden>
+    <p class="caps" id="r-cap">Parlez après le bip</p>
+    <button class="round" id="rec" aria-label="Enregistrer"></button>
+    <div class="timer gold" id="timer">0:00</div>
+    <p class="hint" id="r-hint">Touchez le micro pour commencer.</p>
+  </div>
+
+  <div class="step" id="s-review" hidden>
+    <p class="caps">Votre message</p>
+    <audio id="rv" controls></audio>
+    <div style="width:100%"><label class="caps" for="who" style="display:block">Votre prénom</label><input type="text" id="who" placeholder="Marie" autocomplete="given-name" maxlength="50"></div>
+    <button class="btn fill" id="send">Envoyer aux mariés</button>
+    <button class="link" id="again">Recommencer</button>
+  </div>
+
+  <div class="step" id="s-sending" hidden>
+    <p class="caps">Envoi en cours</p>
+    <div class="bars"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <p class="hint" id="sd-h">Merci de patienter…</p>
+    <button class="btn" id="sd-retry" hidden>Réessayer</button>
+  </div>
+
+  <div class="step" id="s-done" hidden>
+    <h1 class="script gold names">Merci</h1>
+    <div class="orn" style="margin:0 auto"><i></i></div>
+    <p class="lead">Votre message est bien arrivé chez les mariés.</p>
+    <button class="link" id="more">Laisser un autre message</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
+const MAX = 120; // secondes
+const eventId = location.hash.slice(1).toLowerCase();
+let hello = null, current = null, audioCtx, recorder, tInt, t0;
+
+function show(id) { document.querySelectorAll('.step').forEach(s => s.hidden = s.id !== id); }
+
+/* ---- Boîte d'envoi sur le téléphone : un message n'est jamais perdu avant d'être arrivé ---- */
+const odb = new Promise((ok, ko) => { const r = indexedDB.open(PREFIX + 'invite', 1); r.onupgradeneeded = () => r.result.createObjectStore('out', { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+const otx = async (mode, fn) => { try { const d = await odb; return await new Promise((ok, ko) => { const t = d.transaction('out', mode); const q = fn(t.objectStore('out')); t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }); } catch (e) { return null; } };
+const outAll = async () => (await otx('readonly', s => s.getAll())) || [];
+
+async function push(m) {
+  await api('add_message', { p_id: m.id, p_event: m.event, p_guest: m.name, p_mime: m.mime, p_dur: m.dur, p_audio: await blobToB64(m.blob) });
+  await otx('readwrite', s => s.delete(m.id));
+}
+
+async function flushOutbox() {
+  const mine = (await outAll()).filter(m => m.event === eventId);
+  let n = 0;
+  for (const m of mine) { try { await push(m); n++; } catch (e) {} }
+  if (n) { $('w-note').textContent = n > 1 ? 'Vos messages en attente viennent d\'être envoyés ✓' : 'Votre message en attente vient d\'être envoyé ✓'; $('w-note').hidden = false; }
+}
+
+/* ---- Chargement du livre d'or ---- */
+async function connect() {
+  show('s-load'); $('retry').hidden = true; $('load-t').textContent = 'Connexion…'; $('load-h').textContent = 'Nous cherchons les mariés.';
+  if (!CONFIGURED) return fail('Ce livre d\'or n\'est pas encore configuré.');
+  if (!eventId) return fail('Ce lien est incomplet. Scannez à nouveau le QR code.');
+  try {
+    const r = await api('get_event', { p_id: eventId });
+    if (!r || !r[0]) return fail('Ce livre d\'or est introuvable ou n\'existe plus.', true);
+    hello = r[0];
+    document.title = 'Message pour ' + coupleNames(hello.n1, hello.n2);
+    $('w-names').textContent = coupleNames(hello.n1, hello.n2);
+    $('w-date').textContent = fmtDate(hello.wedding_date);
+    show('s-welcome');
+    flushOutbox();
+  } catch (e) { fail('Connexion impossible. Vérifiez votre connexion internet.'); }
+}
+function fail(msg, final) { $('load-t').textContent = 'Oups'; $('load-h').textContent = msg; $('retry').hidden = !!final; }
+$('retry').onclick = connect;
+
+/* ---- Décrocher : annonce puis bip ---- */
+$('pick').onclick = () => {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  show('s-listen');
+  let finished = false;
+  const end = async () => { if (finished) return; finished = true; try { a.pause(); } catch (e) {} await beep(audioCtx); toRec(); };
+  const a = new Audio(URL.createObjectURL(b64ToBlob(hello.greeting, hello.mime)));
+  a.onended = end; $('skip').onclick = end;
+  a.play().catch(end);
+};
+
+function toRec() {
+  show('s-rec'); $('rec').innerHTML = MIC; $('rec').classList.remove('rec');
+  $('timer').textContent = '0:00'; $('r-hint').textContent = 'Touchez le micro pour commencer.';
+}
+
+/* ---- Enregistrement ---- */
+$('rec').onclick = async () => {
+  const b = $('rec');
+  if (recorder) return stopRec();
+  try {
+    recorder = await startRecorder(l => b.style.setProperty('--lvl', l));
+  } catch (e) { $('r-hint').textContent = 'Micro inaccessible : autorisez-le dans votre navigateur puis réessayez.'; return; }
+  b.classList.add('rec'); b.innerHTML = STOP; $('r-cap').textContent = 'À vous…'; $('r-hint').textContent = 'Touchez pour terminer.';
+  t0 = Date.now();
+  tInt = setInterval(() => { const s = (Date.now() - t0) / 1000; $('timer').textContent = fmtTime(s); if (s >= MAX) stopRec(); }, 250);
+};
+
+async function stopRec() {
+  clearInterval(tInt);
+  const r = await recorder.stop(); recorder = null;
+  $('rec').classList.remove('rec'); $('r-cap').textContent = 'Parlez après le bip';
+  if (r.dur < 1) { toRec(); $('r-hint').textContent = 'Trop court — réessayez.'; return; }
+  current = r;
+  $('rv').src = URL.createObjectURL(r.blob);
+  show('s-review');
+}
+$('again').onclick = toRec;
+
+/* ---- Envoi ---- */
+let msg = null;
+$('send').onclick = async () => {
+  msg = { id: crypto.randomUUID(), event: eventId, name: $('who').value.trim(), mime: current.mime, dur: current.dur, blob: current.blob };
+  await otx('readwrite', s => s.put(msg));   // sauvegarde locale d'abord
+  transmit();
+};
+async function transmit() {
+  show('s-sending'); $('sd-retry').hidden = true; $('sd-h').textContent = 'Merci de patienter…';
+  for (let i = 0; i < 3; i++) {
+    try { await push(msg); msg = null; return show('s-done'); }
+    catch (e) { if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 1500 * (i + 1))); }
+  }
+  $('sd-h').textContent = 'L\'envoi n\'a pas abouti. Votre message est gardé sur ce téléphone : réessayez, ou rouvrez le QR code plus tard avec du réseau.';
+  $('sd-retry').hidden = false;
+}
+$('sd-retry').onclick = transmit;
+$('more').onclick = toRec;
+
+connect();
+</script>
+</body>
+</html>
