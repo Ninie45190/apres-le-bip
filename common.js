@@ -169,7 +169,7 @@ function loadHeicLib() {
   if (window.heic2any) return Promise.resolve();
   if (!heicLib) heicLib = new Promise((ok, ko) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+    s.src = 'vendor/heic2any.min.js';
     s.onload = ok; s.onerror = () => { heicLib = null; ko(new Error('convertisseur HEIC indisponible')); };
     document.head.appendChild(s);
   });

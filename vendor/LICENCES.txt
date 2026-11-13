@@ -1,0 +1,5 @@
+Composants libres hébergés avec le site (aucun appel à un service tiers) :
+- qrcode-generator 1.4.4 — licence MIT — Kazuhiko Arase
+- mp4-muxer 5.1.3 — licence MIT — Vanilagy
+- heic2any 0.0.4 — licence MIT — Alex Corvi
+- Polices Pinyon Script, Cormorant Garamond, Jost (dossier fonts/) — licence SIL Open Font License 1.1
