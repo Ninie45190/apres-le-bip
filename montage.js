@@ -233,7 +233,7 @@ const Montage = (() => {
   async function exportMp4(tl, onProgress, ctrl) {
     ctrl = ctrl || {};
     const sr = SR(), canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d'), store = imageStore();
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }), store = imageStore();
     const target = new Mp4Muxer.ArrayBufferTarget();
     const muxer = new Mp4Muxer.Muxer({ target, video: { codec: 'avc', width: W, height: H }, audio: { codec: 'aac', numberOfChannels: 1, sampleRate: sr }, fastStart: 'in-memory' });
     let fail = null;
@@ -270,7 +270,10 @@ const Montage = (() => {
       const t = i / FPS, k = slotAt(tl, t);
       for (const j of [k - 1, k, k + 1]) if (j >= 0 && tl.slots[j] && Math.abs(tl.slots[j].start - t) < 30) { try { await store.load(tl.slots[j].photo.url); } catch (e) {} }
       drawFrame(ctx, tl, t, u => store.get(u));
-      const vf = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS) });
+      // On lit les pixels et on les donne tels quels à l'encodeur (plus fiable qu'un canvas hors écran, qui peut donner des images noires selon le navigateur)
+      const px = ctx.getImageData(0, 0, W, H);
+      if (i === 0 && !px.data[3]) throw new Error('le dessin des images a échoué');
+      const vf = new VideoFrame(px.data, { format: 'RGBA', codedWidth: W, codedHeight: H, timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS), colorSpace: { primaries: 'bt709', transfer: 'bt709', matrix: 'bt709', fullRange: false } });
       venc.encode(vf, { keyFrame: i % (FPS * 2) === 0 }); vf.close();
       while (venc.encodeQueueSize > 8) await sleep(0);
       if (i % 20 === 0) { if (onProgress) onProgress(0.12 + 0.88 * i / frames, 'Création de la vidéo… ' + Math.round(100 * i / frames) + ' %'); await sleep(0); }
