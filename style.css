@@ -192,3 +192,9 @@ input[type=email]:focus { border-bottom-color: var(--gold-deep); }
 .legal th { background: rgba(176,141,60,.08); font-weight: 400; letter-spacing: .04em; }
 .legal-foot { text-align: center; margin-top: 30px; font-size: .78rem; letter-spacing: .08em; color: var(--soft); }
 .legal-foot a { color: var(--gold-deep); margin: 0 10px; }
+
+.tile .tick { position: absolute; top: 14px; left: 14px; width: 28px; height: 28px; background: rgba(255,255,255,.92); display: grid; place-items: center; cursor: pointer; }
+.tile .tick input { width: 18px; height: 18px; accent-color: var(--gold-deep); margin: 0; }
+.tile.off .m { opacity: .45; }
+.filmwin video { width: 100%; aspect-ratio: 16 / 9; display: block; background: #000; border: 1px solid var(--line); }
+.filmwin [hidden] { display: none; }

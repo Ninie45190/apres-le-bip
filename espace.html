@@ -26,7 +26,7 @@
   .empty { padding: 30px 0 10px; text-align: center; }
   .warn { margin: 18px 0 0; padding: 12px 14px; border: 1px dashed var(--gold); font-size: .85rem; color: var(--gold-deep); }
   .tools { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 26px; align-items: center; }
-  .code { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; letter-spacing: .1em; padding: 12px 8px; border: 1px solid var(--line); background: #fff; margin: 10px 0 6px; user-select: all; word-break: break-all; }
+  .code { font-family: 'Cormorant Garamond', serif; font-size: clamp(.95rem, 4.4vw, 1.15rem); letter-spacing: .05em; padding: 10px 8px; border: 1px solid var(--line); background: #fff; margin: 10px 0 6px; user-select: all; word-break: break-all; }
   .keep { margin-top: 22px; text-align: left; }
   .stack { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 22px; }
   .stack .btn { width: 100%; }
@@ -171,16 +171,33 @@
       </div>
 
       <div class="card panel">
-        <div class="tabs" id="tabs" hidden>
-          <button class="tab" data-tab="audio">Messages vocaux <span id="tc-audio"></span></button>
-          <button class="tab" data-tab="media">Photos &amp; vidéos <span id="tc-media"></span></button>
-          <button class="tab" data-tab="montage">Montage</button>
-        </div>
-
         <div class="dlbar">
           <button class="btn fill" id="dlall" disabled>Tout télécharger</button>
           <div class="tools" id="parts" style="margin-top:12px"></div>
           <p class="hint" id="dlhint">Messages vocaux, photos et vidéos : tout dans un seul téléchargement. Vos souvenirs sont conservés 90 jours après la date du mariage.</p>
+        </div>
+
+        <div id="film" hidden>
+          <p class="caps" style="text-align:center;margin:0 0 12px">Votre film souvenir</p>
+          <div class="filmwin">
+            <canvas class="mcanvas" id="mc" width="1280" height="720"></canvas>
+            <video id="mvid" controls playsinline hidden></video>
+          </div>
+          <div class="tools" style="margin-top:16px">
+            <button class="btn" id="mplay">Aperçu</button>
+            <button class="btn fill" id="mexport">Créer la vidéo (MP4)</button>
+            <a class="btn fill" id="mdl" download="montage.mp4" hidden>Télécharger le film</a>
+          </div>
+          <div class="bar" id="mbar" style="height:4px;margin-top:16px" hidden><i></i></div>
+          <p class="hint" id="mhint" style="margin-top:10px;text-align:center"></p>
+          <p class="hint" id="mstat" style="text-align:center"></p>
+          <p class="hint" style="text-align:center">Le film commence par votre répondeur, puis enchaîne les messages avec les photos de chaque invité. Cochez ci-dessous ce que vous voulez y mettre.</p>
+        </div>
+
+        <div class="tabs" id="tabs" hidden>
+          <button class="tab" data-tab="audio">Messages <span id="tc-audio"></span></button>
+          <button class="tab" data-tab="photos">Photos <span id="tc-photos"></span></button>
+          <button class="tab" data-tab="videos">Vidéos <span id="tc-videos"></span></button>
         </div>
 
         <section id="p-audio">
@@ -189,41 +206,32 @@
             <span class="caps" id="clabel">message</span>
             <span class="hint" id="sync" style="margin-left:auto"></span>
           </div>
+          <div class="tools" style="margin:10px 0 18px;justify-content:flex-start"><button class="link" id="mall">Tout sélectionner</button><button class="link" id="mnone">Tout désélectionner</button><button class="link" id="refresh">Actualiser</button></div>
           <div id="list"></div>
           <div class="empty" id="empty"><p class="lead">Les messages apparaîtront ici, au fil de la soirée.</p></div>
-          <div class="tools"><button class="link" id="refresh">Actualiser</button></div>
         </section>
 
-        <section id="p-media" hidden>
+        <section id="p-photos" hidden>
           <div style="display:flex;align-items:baseline;gap:14px">
             <span class="count script gold" id="mcount">0</span>
-            <span class="caps" id="mlabel">fichier</span>
+            <span class="caps" id="mlabel">photo</span>
             <span class="hint" id="msync" style="margin-left:auto"></span>
           </div>
-          <p class="hint" id="msize" style="margin:6px 0 18px"></p>
+          <div class="tools" style="margin:10px 0 18px;justify-content:flex-start"><button class="link" id="pall">Tout sélectionner</button><button class="link" id="pnone">Tout désélectionner</button><button class="link" id="mrefresh">Actualiser</button></div>
           <div class="grid" id="grid"></div>
-          <div class="empty" id="mempty"><p class="lead">Les photos et vidéos apparaîtront ici, au fil de la soirée.</p></div>
-          <div class="tools"><button class="link" id="mrefresh">Actualiser</button></div>
+          <div class="empty" id="mempty"><p class="lead">Les photos apparaîtront ici, au fil de la soirée.</p></div>
         </section>
 
-        <section id="p-montage" hidden>
-          <p class="lead" style="text-align:center">Un film souvenir : votre répondeur, puis tous les messages de la soirée, pendant que vos photos défilent.</p>
-          <div class="mstat" id="mstat"></div>
-          <canvas class="mcanvas" id="mc" width="1280" height="720"></canvas>
-          <div class="tools">
-            <button class="btn" id="mplay">Aperçu</button>
-            <button class="btn fill" id="mexport">Créer la vidéo (MP4)</button>
+        <section id="p-videos" hidden>
+          <div style="display:flex;align-items:baseline;gap:14px">
+            <span class="count script gold" id="vcount">0</span>
+            <span class="caps" id="vlabel">vidéo</span>
+            <span class="hint" id="vsync" style="margin-left:auto"></span>
           </div>
-          <div class="bar" id="mbar" style="height:4px;margin-top:16px" hidden><i></i></div>
-          <p class="hint" id="mhint" style="margin-top:10px;text-align:center"></p>
-          <div id="mres" hidden style="margin-top:18px;text-align:center">
-            <video id="mvid" controls playsinline style="width:100%;border:1px solid var(--line)"></video>
-            <div class="tools"><a class="btn fill" id="mdl" download="montage.mp4">Télécharger le montage</a></div>
-          </div>
-          <div style="margin-top:22px;border-top:1px solid rgba(176,141,60,.25);padding-top:14px">
-            <p class="hint">Vous choisissez ce qui entre dans le film : cochez « Dans le montage » sous chaque message vocal, et touchez l'étoile ★ sur vos photos préférées. Sans sélection de photos, elles sont choisies automatiquement pour correspondre à la durée du son. Les vidéos ne font pas partie du film (elles restent dans votre téléchargement).</p>
-            <div class="tools" style="margin-top:8px"><button class="link" id="mall">Tous les messages</button><button class="link" id="mnone">Aucun message</button><button class="link" id="mauto">Photos : sélection automatique</button></div>
-          </div>
+          <p class="hint" id="msize" style="margin:6px 0 14px">Les vidéos ne sont pas dans le film : elles sont incluses dans « Tout télécharger ».</p>
+          <div class="grid" id="vgrid"></div>
+          <div class="empty" id="vempty"><p class="lead">Les vidéos apparaîtront ici, au fil de la soirée.</p></div>
+          <div class="tools"><button class="link" id="vrefresh">Actualiser</button></div>
         </section>
       </div>
     </div>
@@ -414,16 +422,16 @@ $('mailbtn').onclick = () => {
 };
 
 /* ---------- Espace des mariés ---------- */
-const TABS = () => [info.audio && 'audio', info.media && 'media', info.audio && 'montage'].filter(Boolean);
+const TABS = () => [info.audio && 'audio', info.media && 'photos', info.media && 'videos'].filter(Boolean);
 function showTab(t) {
-  for (const x of ['audio', 'media', 'montage']) $('p-' + x).hidden = x !== t;
+  for (const x of ['audio', 'photos', 'videos']) $('p-' + x).hidden = x !== t;
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
 }
-document.querySelectorAll('.tab').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'montage') updateMontageStats(); });
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 
 const selKey = () => PREFIX + 'sel-' + ev.id;
-function loadSel() { try { const s = JSON.parse(localStorage.getItem(selKey()) || '{}'); sel = { audioOff: new Set(s.audioOff || []), photos: new Set(s.photos || []) }; } catch (e) { sel = { audioOff: new Set(), photos: new Set() }; } }
-function saveSel() { try { localStorage.setItem(selKey(), JSON.stringify({ audioOff: [...sel.audioOff], photos: [...sel.photos] })); } catch (e) {} updateMontageStats(); }
+function loadSel() { try { const s = JSON.parse(localStorage.getItem(selKey()) || '{}'); sel = { audioOff: new Set(s.audioOff || []), photosOff: new Set(s.photosOff || []) }; } catch (e) { sel = { audioOff: new Set(), photosOff: new Set() }; } }
+function saveSel() { try { localStorage.setItem(selKey(), JSON.stringify({ audioOff: [...sel.audioOff], photosOff: [...sel.photosOff] })); } catch (e) {} updateMontageStats(); }
 
 async function loadGreeting() {
   try {
@@ -454,6 +462,7 @@ async function showLive() {
   // boutons : écran en premier si choisi, sinon impression
   $('screenbtn').className = info.screen ? 'btn fill' : 'btn'; $('printbtn').className = info.screen ? 'btn' : 'btn fill';
   $('screenbtn').parentElement.insertBefore(info.screen ? $('screenbtn') : $('printbtn'), $('screenbtn').parentElement.firstChild);
+  $('film').hidden = !a;
   const tabs = TABS(); $('tabs').hidden = tabs.length < 2;
   document.querySelectorAll('.tab').forEach(b => b.hidden = !tabs.includes(b.dataset.tab));
   $('reg').hidden = !a;
@@ -461,6 +470,7 @@ async function showLive() {
   clearInterval(pollA); clearInterval(pollM);
   if (a) { loadGreeting(); refresh(); pollA = setInterval(refresh, 30000); }
   if (m) { refreshMedia(); pollM = setInterval(refreshMedia, 45000); }
+  if (a && window.Montage) Montage.poster($('mc'), coupleNames(info.n1, info.n2), info.date);
   updateMontageStats();
   applyRO(); capInit();
 }
@@ -558,7 +568,7 @@ function renderList() {
   [...messages].reverse().forEach(m => {
     const el = document.createElement('div'); el.className = 'msg';
     el.innerHTML = '<div><div class="who"></div><div class="hint">' + clock(m.created_at) + ' · ' + fmtTime(m.dur) + '</div></div><div><button class="btn play" style="padding:10px 18px;min-height:0">Écouter</button> <button class="link del">Supprimer</button></div>' +
-      '<label class="pick"><input type="checkbox"> Dans le montage</label>';
+      '<label class="pick"><input type="checkbox"> Dans le film</label>';
     el.querySelector('.who').textContent = m.guest || 'Invité anonyme';
     const cb = el.querySelector('.pick input'); cb.checked = !sel.audioOff.has(m.id);
     cb.onchange = () => { cb.checked ? sel.audioOff.delete(m.id) : sel.audioOff.add(m.id); saveSel(); };
@@ -606,15 +616,15 @@ async function signPaths(paths, ttl) {
 
 async function refreshMedia() {
   try {
-    if (Date.now() - murlsAt > 5 * 3600 * 1000) { murls = {}; murlsAt = Date.now(); tiles = {}; $('grid').innerHTML = ''; }  // les liens durent 6 h
+    if (Date.now() - murlsAt > 5 * 3600 * 1000) { murls = {}; murlsAt = Date.now(); tiles = {}; $('grid').innerHTML = ''; $('vgrid').innerHTML = ''; }  // les liens durent 6 h
     mitems = (await mcall('list')).items;
     const need = mitems.filter(i => !murls[i.path]).map(i => i.path);
     if (need.length) Object.assign(murls, await signPaths(need, 21600));
-    $('msync').textContent = 'À jour · ' + clock(new Date());
-  } catch (e) { $('msync').textContent = 'Hors ligne'; }
+    $('msync').textContent = $('vsync').textContent = 'À jour · ' + clock(new Date());
+  } catch (e) { $('msync').textContent = $('vsync').textContent = 'Hors ligne'; }
   renderGrid(); updateMontageStats();
 }
-$('mrefresh').onclick = refreshMedia;
+$('mrefresh').onclick = refreshMedia; $('vrefresh').onclick = refreshMedia;
 
 function makeTile(it) {
   const url = murls[it.path];
@@ -635,14 +645,15 @@ function makeTile(it) {
   const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.title = 'Supprimer'; x.setAttribute('aria-label', 'Supprimer');
   x.onclick = async () => {
     if (!confirm('Supprimer définitivement cette ' + (isVideo(it) ? 'vidéo' : 'photo') + ' ?')) return;
-    try { await mcall('delete', { paths: [it.path] }); sel.photos.delete(it.path); refreshMedia(); } catch (e) { alert('Suppression impossible : ' + e.message); }
+    try { await mcall('delete', { paths: [it.path] }); sel.photosOff.delete(it.path); refreshMedia(); } catch (e) { alert('Suppression impossible : ' + e.message); }
   };
   if (!RO) el.appendChild(x);
   if (isPhoto(it) && info.audio) {
-    const st = document.createElement('button'); st.className = 'star'; st.textContent = '★'; st.title = 'Mettre dans le montage'; st.setAttribute('aria-label', 'Mettre dans le montage');
-    el.classList.toggle('sel', sel.photos.has(it.path));
-    st.onclick = () => { sel.photos.has(it.path) ? sel.photos.delete(it.path) : sel.photos.add(it.path); el.classList.toggle('sel', sel.photos.has(it.path)); saveSel(); };
-    el.appendChild(st);
+    const lb = document.createElement('label'); lb.className = 'tick'; lb.title = 'Mettre dans le film';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !sel.photosOff.has(it.path); lb.appendChild(cb);
+    el.classList.toggle('off', !cb.checked);
+    cb.onchange = () => { cb.checked ? sel.photosOff.delete(it.path) : sel.photosOff.add(it.path); el.classList.toggle('off', !cb.checked); saveSel(); };
+    el.appendChild(lb);
   }
   return el;
 }
@@ -650,13 +661,14 @@ function makeTile(it) {
 function renderGrid() {
   const have = new Set(mitems.map(i => i.path));
   for (const p of Object.keys(tiles)) if (!have.has(p)) { tiles[p].remove(); delete tiles[p]; }
-  for (const it of mitems) if (!tiles[it.path] && murls[it.path]) { tiles[it.path] = makeTile(it); $('grid').prepend(tiles[it.path]); }
-  const v = mitems.filter(isVideo).length, p = mitems.length - v, bytes = mitems.reduce((s, i) => s + i.size, 0);
-  $('mcount').textContent = mitems.length;
-  $('mlabel').textContent = mitems.length > 1 ? 'fichiers' : 'fichier';
-  $('msize').textContent = mitems.length ? p + (p > 1 ? ' photos' : ' photo') + ' · ' + v + (v > 1 ? ' vidéos' : ' vidéo') + ' · ' + fmtSize(bytes) : '';
-  $('tc-media').textContent = mitems.length ? '(' + mitems.length + ')' : '';
-  $('mempty').hidden = mitems.length > 0;
+  for (const it of mitems) if (!tiles[it.path] && murls[it.path]) { tiles[it.path] = makeTile(it); $(isVideo(it) ? 'vgrid' : 'grid').prepend(tiles[it.path]); }
+  const vids = mitems.filter(isVideo), phs = mitems.filter(isPhoto);
+  $('mcount').textContent = phs.length; $('mlabel').textContent = phs.length > 1 ? 'photos' : 'photo';
+  $('vcount').textContent = vids.length; $('vlabel').textContent = vids.length > 1 ? 'vidéos' : 'vidéo';
+  $('tc-photos').textContent = phs.length ? '(' + phs.length + ')' : '';
+  $('tc-videos').textContent = vids.length ? '(' + vids.length + ')' : '';
+  $('mempty').hidden = phs.length > 0; $('vempty').hidden = vids.length > 0;
+  $('pall').hidden = $('pnone').hidden = !info.audio;
   updateDl();
 }
 
@@ -711,27 +723,22 @@ async function buildPart(parts, i, btn) {
 /* ---------- Montage ---------- */
 let mctrl = null, mexporting = false, mcancel = { cancel: false };
 const selectedVoices = () => messages.filter(m => !sel.audioOff.has(m.id));
-function selectedPhotos() {
-  const photos = mitems.filter(isPhoto);
-  const chosen = sel.photos.size ? photos.filter(p => sel.photos.has(p.path)) : photos;
-  return chosen;
-}
+function selectedPhotos() { return mitems.filter(p => isPhoto(p) && !sel.photosOff.has(p.path)); }
 const fmtDur = s => { s = Math.round(s); return s >= 60 ? Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
 
 function updateMontageStats() {
   if (!ev || !info.audio) return;
   const v = selectedVoices(), ph = selectedPhotos();
-  const sound = (greetingBlob ? 18 : 0) + v.reduce((s, m) => s + (m.dur || 10) + 1.2, 0), total = 4 + sound + 5;
-  $('mstat').innerHTML = '<div><b>' + v.length + '</b><span>message' + (v.length > 1 ? 's' : '') + ' choisi' + (v.length > 1 ? 's' : '') + '</span></div>' +
-    '<div><b>' + ph.length + '</b><span>photo' + (ph.length > 1 ? 's' : '') + (sel.photos.size ? (ph.length > 1 ? ' choisies' : ' choisie') : ' (auto)') + '</span></div>' +
-    '<div><b>≈ ' + fmtDur(total) + '</b><span>durée du film</span></div>' +
-    '<div><b>≈ ' + fmtSize(total * 190000) + '</b><span>taille de la vidéo</span></div>';
+  const total = (greetingBlob ? 19 : 4) + v.reduce((s, m) => s + (m.dur || 10) + 1.2, 0) + 5;
+  $('mstat').textContent = v.length + (v.length > 1 ? ' messages' : ' message') + ' · ' + ph.length + (ph.length > 1 ? ' photos' : ' photo') + ' · film d\'environ ' + fmtDur(total) + ' (≈ ' + fmtSize(total * 190000) + ')';
   $('mexport').disabled = mexporting || !(v.length || greetingBlob);
   $('mplay').disabled = mexporting || !(v.length || greetingBlob);
 }
+function syncTicks() { document.querySelectorAll('.tile').forEach(t => { const cb = t.querySelector('.tick input'); if (cb) { cb.checked = !sel.photosOff.has(t.dataset.path); t.classList.toggle('off', !cb.checked); } }); }
 $('mall').onclick = () => { sel.audioOff.clear(); saveSel(); renderList(); };
 $('mnone').onclick = () => { messages.forEach(m => sel.audioOff.add(m.id)); saveSel(); renderList(); };
-$('mauto').onclick = () => { sel.photos.clear(); saveSel(); document.querySelectorAll('.tile.sel').forEach(t => t.classList.remove('sel')); };
+$('pall').onclick = () => { sel.photosOff.clear(); saveSel(); syncTicks(); };
+$('pnone').onclick = () => { mitems.filter(isPhoto).forEach(p => sel.photosOff.add(p.path)); saveSel(); syncTicks(); };
 
 async function buildSpec(prog) {
   const voices = selectedVoices(), out = [];
@@ -744,7 +751,7 @@ function mprog(txt, pct) { $('mhint').textContent = txt; if (pct != null) { $('m
 
 $('mplay').onclick = async () => {
   if (mctrl) { mctrl.stop(); mctrl = null; $('mplay').textContent = 'Aperçu'; mprog('', null); $('mbar').hidden = true; return; }
-  $('mplay').disabled = true;
+  $('mplay').disabled = true; $('mvid').pause(); $('mvid').hidden = true; $('mc').hidden = false;
   try {
     const spec = await buildSpec(t => mprog(t));
     const tl = await Montage.prepare(spec, (p, t) => mprog(t, p));
@@ -758,14 +765,14 @@ $('mexport').onclick = async () => {
   if (mexporting) { mcancel.cancel = true; return; }
   if (!Montage.supported()) { mprog('Votre navigateur ne sait pas créer de vidéo. Utilisez Chrome, Edge ou Safari récents sur ordinateur.', null); return; }
   if (mctrl) $('mplay').click();
-  mexporting = true; mcancel = { cancel: false }; $('mexport').textContent = 'Annuler'; $('mres').hidden = true; $('mplay').disabled = true;
+  mexporting = true; mcancel = { cancel: false }; $('mexport').textContent = 'Annuler'; $('mdl').hidden = true; $('mplay').disabled = true;
   try {
     const spec = await buildSpec(t => mprog(t));
     const tl = await Montage.prepare(spec, (p, t) => mprog(t, p * 0.05));
     if (tl.skipped) mprog(tl.skipped + ' message(s) illisible(s) ignoré(s).', 0.05);
     const blob = await Montage.exportMp4(tl, (p, t) => mprog(t + ' — gardez cet onglet ouvert', p), mcancel);
     const url = URL.createObjectURL(blob);
-    $('mvid').src = url; $('mdl').href = url; $('mdl').download = 'Montage_' + clean(info.n1 + '_et_' + info.n2) + '.mp4'; $('mres').hidden = false;
+    $('mvid').src = url; $('mdl').href = url; $('mdl').download = 'Montage_' + clean(info.n1 + '_et_' + info.n2) + '.mp4'; $('mdl').hidden = false; $('mc').hidden = true; $('mvid').hidden = false;
     mprog('Votre montage est prêt (' + fmtDur(tl.total) + ', ' + fmtSize(blob.size) + ').', 1);
   } catch (e) { mprog(e.message === 'annulé' ? 'Création annulée.' : 'La création a échoué : ' + e.message, null); $('mbar').hidden = true; }
   mexporting = false; $('mexport').textContent = 'Créer la vidéo (MP4)'; updateMontageStats();

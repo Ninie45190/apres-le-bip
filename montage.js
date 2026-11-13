@@ -27,35 +27,65 @@ const Montage = (() => {
 
   /* ---------- Plan du montage ----------
      spec : { names, date, greeting: Blob|null, voices: [{ name, blob }], photos: [{ url, guest }] } */
+  const norm = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const author = x => { const n = norm(x); return n === 'invite' || n === 'un-invite' ? '' : n; };
+  const spread = (list, n) => list.length <= n ? list.slice() : Array.from({ length: n }, (_, i) => list[Math.round(i * (list.length - 1) / Math.max(1, n - 1))]);
+
   async function prepare(spec, onProgress) {
     const items = [];
     if (spec.greeting) items.push({ kind: 'greeting', label: 'Le répondeur de ' + spec.names, blob: spec.greeting });
-    for (const v of spec.voices) items.push({ kind: 'voice', label: 'Message de ' + (v.name || 'un invité'), blob: v.blob });
-    const segs = []; let t = INTRO, skipped = 0;
+    for (const v of spec.voices) items.push({ kind: 'voice', who: v.name, label: 'Message de ' + (v.name || 'un invité'), blob: v.blob });
+    // Le répondeur passe pendant l'intro ; les messages suivent l'un après l'autre
+    const segs = []; let introEnd = INTRO, t = 0, skipped = 0;
     for (let i = 0; i < items.length; i++) {
       if (onProgress) onProgress(i / Math.max(1, items.length), 'Analyse du son ' + (i + 1) + ' / ' + items.length + '…');
       try {
         const p = await pcm(items[i].blob), dur = p.length / SR();
-        segs.push({ ...items[i], start: t, end: t + dur, dur }); t += dur + GAP;
+        if (items[i].kind === 'greeting') { segs.push({ ...items[i], start: 0, end: dur, dur }); introEnd = Math.max(INTRO, dur + 1.2); t = introEnd; }
+        else { if (!t) t = introEnd; segs.push({ ...items[i], start: t, end: t + dur, dur }); t += dur + GAP; }
       } catch (e) { skipped++; }
     }
     pcmCache.clear();
     const photos = spec.photos || [];
-    let span = segs.length ? segs[segs.length - 1].end - INTRO : Math.min(60, photos.length * 6);
-    const audioEnd = INTRO + span;
-    // Nombre de photos adapté à la durée du son : entre 4,5 s et 11 s par photo
-    const slots = [];
-    if (photos.length && span > 0) {
-      const fit = Math.max(1, Math.floor(span / MIN_HOLD));
-      let list = photos;
-      if (list.length > fit) list = Array.from({ length: fit }, (_, i) => photos[Math.round(i * (photos.length - 1) / Math.max(1, fit - 1))]);
-      const hold = Math.min(MAX_HOLD, Math.max(MIN_HOLD, span / list.length));
-      for (let s = INTRO, k = 0; s < audioEnd - 0.01; s += hold, k++) {
-        const ph = list[k % list.length];
-        slots.push({ start: s, end: Math.min(audioEnd, s + hold), hold, photo: ph, rot: (k % 2 ? 1 : -1) * (0.6 + (k * 37 % 10) / 10) });
+    const voiceSegs = segs.filter(g => g.kind === 'voice');
+    // Fenêtres d'images : une par message (jusqu'au début du suivant), ou une seule s'il n'y a que des photos
+    let audioEnd, wins;
+    if (voiceSegs.length) {
+      audioEnd = voiceSegs[voiceSegs.length - 1].end;
+      wins = voiceSegs.map((g, i) => ({ start: i === 0 ? introEnd : g.start, end: i + 1 < voiceSegs.length ? voiceSegs[i + 1].start : audioEnd, who: author(g.who), photos: [] }));
+    } else {
+      audioEnd = introEnd + (photos.length ? Math.min(60, photos.length * 6) : 0);
+      wins = photos.length ? [{ start: introEnd, end: audioEnd, who: '', photos: [] }] : [];
+    }
+    // 1) chaque photo va avec le message de son auteur
+    const pool = [];
+    for (const ph of photos) {
+      const w = author(ph.guest) && wins.find(x => x.who && x.who === author(ph.guest));
+      (w ? w.photos : pool).push(ph);
+    }
+    for (const w of wins) { const fit = Math.max(1, Math.floor((w.end - w.start) / 3)); if (w.photos.length > fit) { const keep = spread(w.photos, fit); pool.push(...w.photos.filter(x => !keep.includes(x))); w.photos = keep; } }
+    // 2) les autres photos se répartissent sur les messages qui n'ont encore aucune image
+    const empty = wins.filter(w => !w.photos.length);
+    if (empty.length && pool.length) {
+      const per = Math.max(1, Math.round(pool.length / empty.length)); let k = 0;
+      for (const w of empty) {
+        const fit = Math.max(1, Math.floor((w.end - w.start) / MIN_HOLD));
+        w.photos = pool.slice(k, k + Math.min(per, fit)); k += w.photos.length;
+        if (!w.photos.length) w.photos = [pool[(k++) % pool.length]];
       }
     }
-    return { names: spec.names, date: spec.date, segs, slots, audioEnd, total: audioEnd + OUTRO, skipped, photoCount: new Set(slots.map(s => s.photo.url)).size };
+    // 3) s'il reste des fenêtres vides, on réutilise des photos pour ne jamais laisser l'écran vide
+    for (const w of wins) if (!w.photos.length && photos.length) w.photos = [photos[Math.floor(Math.random() * photos.length)]];
+    const slots = []; let rk = 0;
+    for (const w of wins) {
+      const n = w.photos.length; if (!n) continue;
+      const hold = Math.min(MAX_HOLD, (w.end - w.start) / n);
+      for (let i = 0; i < n; i++, rk++) {
+        const start = w.start + i * ((w.end - w.start) / n), end = i === n - 1 ? w.end : start + (w.end - w.start) / n;
+        slots.push({ start, end, hold: Math.max(2, end - start), photo: w.photos[i], rot: (rk % 2 ? 1 : -1) * (0.6 + (rk * 37 % 10) / 10) });
+      }
+    }
+    return { names: spec.names, date: spec.date, segs, slots, introEnd, audioEnd, total: audioEnd + OUTRO, skipped, photoCount: new Set(slots.map(s => s.photo.url)).size };
   }
 
   /* ---------- Images ---------- */
@@ -132,7 +162,7 @@ const Montage = (() => {
   }
   function drawFrame(ctx, tl, t, getImg) {
     background(ctx);
-    if (t < INTRO) { card(ctx, tl, 'intro', Math.min(t / .9, (INTRO - t) / .8, 1)); }
+    if (t < tl.introEnd) { card(ctx, tl, 'intro', Math.min(t / .9, (tl.introEnd - t) / .8, 1)); }
     // photos
     const fadeOut = t > tl.audioEnd ? 1 - (t - tl.audioEnd) / 1.0 : 1;
     let k = -1; for (let i = 0; i < tl.slots.length; i++) if (t >= tl.slots[i].start) k = i; else break;
@@ -249,5 +279,10 @@ const Montage = (() => {
     return new Blob([target.buffer], { type: 'video/mp4' });
   }
 
-  return { prepare, play, exportMp4, supported, durationOf: tl => tl.total };
+  async function poster(canvas, names, date) {
+    await ensureFonts(); canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d'); background(ctx); card(ctx, { names, date }, 'intro', 1);
+  }
+
+  return { prepare, play, poster, exportMp4, supported, durationOf: tl => tl.total };
 })();
