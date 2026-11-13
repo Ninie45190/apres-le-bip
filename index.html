@@ -196,7 +196,7 @@
         <div class="buy" id="buy-cap"></div>
       </div>
     </div>
-    <p class="tiny" style="text-align:center;margin-top:26px">Vous avez déjà un code ? <a href="acces.html" style="color:var(--gold-deep)">Accéder à mon espace</a></p>
+    <p class="tiny" style="text-align:center;margin-top:26px">Retrouvez aussi nos jeux de soirée sur <a id="etsy-line" href="#" target="_blank" rel="noopener" style="color:var(--gold-deep)">notre boutique Etsy</a>.<br>Vous avez déjà un code ? <a href="acces.html" style="color:var(--gold-deep)">Accéder à mon espace</a></p>
   </section>
 
   <!-- QUESTIONS -->
@@ -218,7 +218,7 @@
 <footer>
   <span class="brand script gold">Après le bip</span>
   Le livre d'or sonore et photo de votre mariage
-  <div style="margin-top:14px"><a href="acces.html" style="color:var(--gold-deep)">J'ai un code</a></div>
+  <div style="margin-top:14px"><a href="acces.html" style="color:var(--gold-deep)">J'ai un code</a> · <a id="etsy-foot" href="#" target="_blank" rel="noopener" style="color:var(--gold-deep)" hidden>Notre boutique Etsy</a></div>
   <div class="legal-foot" id="legal" style="margin-top:14px"><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a></div>
 </footer>
 
@@ -240,9 +240,12 @@ function buy(id, payUrl, price, note) {
   const btns = [];
   if (shop.etsyUrl) btns.push('<a class="btn fill" href="' + shop.etsyUrl + '" target="_blank" rel="noopener">Acheter sur Etsy</a>');
   if (payUrl) btns.push('<a class="btn ' + (btns.length ? '' : 'fill') + '" href="' + payUrl + '">Payer en ligne</a>');
-  box.innerHTML = btns.length ? btns.join('') + '<p class="soon">Votre code d\'accès vous est remis aussitôt après l\'achat.</p>' : '<p class="soon">Bientôt disponible à l\'achat.</p>';
+  box.innerHTML = btns.length ? btns.join('') + '<p class="soon">Votre code d\'accès vous est remis aussitôt après l\'achat.</p>'
+    : shop.etsyShopUrl ? '<a class="btn" href="' + shop.etsyShopUrl + '" target="_blank" rel="noopener">Voir la boutique Etsy</a><p class="soon">Annonce bientôt disponible sur Etsy.</p>'
+    : '<p class="soon">Bientôt disponible à l\'achat.</p>';
 }
 if (CFG.legal && CFG.legal.cgvUrl) document.getElementById('legal').insertAdjacentHTML('beforeend', '<a href="' + CFG.legal.cgvUrl + '">Conditions de vente</a>');
+if (shop.etsyShopUrl) { const e = document.getElementById('etsy-foot'); e.href = shop.etsyShopUrl; e.hidden = false; document.getElementById('etsy-line').href = shop.etsyShopUrl; }
 buy('std', shop.payUrlStandard, shop.priceStandard, shop.priceStandardNote);
 buy('cap', shop.payUrlCapsule, shop.priceCapsule, shop.priceCapsuleNote);
 </script>

@@ -8,7 +8,8 @@ const CFG = {
   legal: { cgvUrl: '' },
   // Boutique : laissez vide ce qui n'est pas encore prêt (le bouton correspondant n'apparaît pas)
   shop: {
-    etsyUrl: '',            // adresse de votre annonce Etsy
+    etsyShopUrl: 'https://www.etsy.com/shop/MaitreDuJeu',   // votre boutique Etsy (lien affiché sur le site)
+    etsyUrl: '',            // adresse de l'annonce Etsy de CE produit (quand elle existera : le bouton « Acheter sur Etsy » apparaît)
     payUrlStandard: '',     // lien de paiement en ligne (formule essentielle)
     payUrlCapsule: '',      // lien de paiement en ligne (formule avec time capsule)
     priceStandard: '29,90 €',                                  // prix affiché (formule essentielle)
