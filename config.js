@@ -3,5 +3,13 @@ const CFG = {
   url: 'https://vvdrkshywvolajjblxrg.supabase.co',
   key: 'sb_publishable_2G0JoQ1tdpPmY63YukloJQ_eNBA8KNS',
   maxVideoMB: 50,   // doit correspondre à la limite du serveur (offre gratuite Supabase : 50 Mo par fichier)
-  maxPhotoMB: 15
+  maxPhotoMB: 15,
+  // Boutique : laissez vide ce qui n'est pas encore prêt (le bouton correspondant n'apparaît pas)
+  shop: {
+    etsyUrl: '',            // adresse de votre annonce Etsy
+    payUrlStandard: '',     // lien de paiement en ligne (formule essentielle)
+    payUrlCapsule: '',      // lien de paiement en ligne (formule avec time capsule)
+    priceStandard: '',      // ex. « 29 € »
+    priceCapsule: ''        // ex. « 39 € »
+  }
 };

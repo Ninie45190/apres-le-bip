@@ -32,7 +32,7 @@
     <h1 class="script gold names" id="w-names"></h1>
     <div class="orn" style="margin:2px auto"><i></i></div>
     <p class="lead" id="w-lead"></p>
-    <p class="hint" id="w-hint">Mettez le son de votre téléphone.</p>
+    <p class="hint" id="w-hint">Mettez le son de votre téléphone. Votre message dure 20 secondes au maximum.</p>
     <div class="actions">
       <button class="btn fill" id="pick">Décrocher</button>
       <button class="btn" id="go-media">Partager mes photos et vidéos</button>
@@ -50,7 +50,7 @@
   <div class="step" id="s-rec" hidden>
     <p class="caps" id="r-cap">Parlez après le bip</p>
     <button class="round" id="rec" aria-label="Enregistrer"></button>
-    <div class="timer gold" id="timer">0:00</div>
+    <div class="timer gold" id="timer">0:00 / 0:20</div>
     <p class="hint" id="r-hint">Touchez le micro pour commencer.</p>
   </div>
 
@@ -106,7 +106,7 @@ const $ = id => document.getElementById(id);
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
 const VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>';
-const MAX = 120; // secondes de message vocal
+const MAX = 20; // secondes de message vocal
 const eventId = location.hash.slice(1).toLowerCase();
 const GUEST_KEY = PREFIX + 'guest';
 let hello = null, current = null, audioCtx, recorder, tInt, t0;
@@ -187,7 +187,7 @@ $('pick').onclick = () => {
 
 function toRec() {
   show('s-rec'); $('rec').innerHTML = MIC; $('rec').classList.remove('rec');
-  $('timer').textContent = '0:00'; $('r-hint').textContent = 'Touchez le micro pour commencer.';
+  $('timer').textContent = '0:00 / 0:20'; $('r-hint').textContent = 'Touchez le micro pour commencer. Votre message dure 20 secondes au maximum.';
 }
 
 $('rec').onclick = async () => {
@@ -198,7 +198,7 @@ $('rec').onclick = async () => {
   } catch (e) { $('r-hint').textContent = 'Micro inaccessible : autorisez-le dans votre navigateur puis réessayez.'; return; }
   b.classList.add('rec'); b.innerHTML = STOP; $('r-cap').textContent = 'À vous…'; $('r-hint').textContent = 'Touchez pour terminer.';
   t0 = Date.now();
-  tInt = setInterval(() => { const s = (Date.now() - t0) / 1000; $('timer').textContent = fmtTime(s); if (s >= MAX) stopRec(); }, 250);
+  tInt = setInterval(() => { const s = (Date.now() - t0) / 1000; $('timer').textContent = fmtTime(s) + ' / 0:20'; if (s >= MAX) stopRec(); }, 250);
 };
 
 async function stopRec() {

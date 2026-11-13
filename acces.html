@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Accès — Après le bip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: grid; place-items: center; padding: 28px 16px; }
+  .wrap { width: 100%; max-width: 480px; text-align: center; }
+  .card { padding: 46px 28px 36px; }
+  .names { font-size: clamp(2.6rem, 11vw, 3.6rem); }
+  .tabs { justify-content: center; margin: 0 0 26px; }
+  input.code { letter-spacing: .14em; text-transform: uppercase; font-size: 1.45rem; }
+  .msg { min-height: 1.4em; font-size: .9rem; margin-top: 14px; }
+  .bad { color: #a4472f; } .good { color: #4f8a55; }
+  .back { margin-top: 22px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap fade">
+  <a class="caps" href="./" style="text-decoration:none">Après le bip</a>
+  <h1 class="script gold names" style="margin:8px 0 4px">Votre accès</h1>
+  <div class="orn"><i></i></div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" data-t="code">J'ai un code d'achat</button>
+      <button class="tab" data-t="retrouver">Retrouver mon livre d'or</button>
+    </div>
+
+    <section id="t-code">
+      <p class="lead" style="margin-bottom:6px">Saisissez le code reçu lors de votre achat.</p>
+      <p class="hint">Il ressemble à <b>BIP-XXXX-XXXX-XXXX</b>.</p>
+      <div class="field" style="margin:22px 0 8px"><input type="text" class="code" id="code" placeholder="BIP-••••-••••-••••" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20"></div>
+      <button class="btn fill" id="check" style="margin-top:12px">Valider mon code</button>
+      <p class="msg" id="msg1"></p>
+      <button class="btn fill" id="go" hidden style="margin-top:6px">Créer mon livre d'or</button>
+    </section>
+
+    <section id="t-retrouver" hidden>
+      <p class="lead" style="margin-bottom:6px">Retrouvez vos messages et vos photos.</p>
+      <p class="hint">Collez votre lien privé, ou le code secret reçu par e-mail à la création de votre livre d'or.</p>
+      <div class="field" style="margin:22px 0 8px"><input type="text" class="code" id="secret" placeholder="code secret ou lien privé" autocomplete="off" spellcheck="false" style="text-transform:none;letter-spacing:.04em;font-size:1.15rem"></div>
+      <button class="btn fill" id="open" style="margin-top:12px">Ouvrir mon espace</button>
+      <p class="msg" id="msg2"></p>
+    </section>
+  </div>
+
+  <a class="link back" href="./#formules">Pas encore de code ? Voir les formules</a>
+</div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const CODE_KEY = PREFIX + 'code';
+let valid = '';
+
+function tab(t) { for (const x of ['code', 'retrouver']) $('t-' + x).hidden = x !== t; document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.t === t)); }
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => tab(b.dataset.t));
+if (location.hash === '#retrouver') tab('retrouver');
+
+/* mise en forme automatique : BIP-XXXX-XXXX-XXXX */
+$('code').addEventListener('input', () => {
+  let v = $('code').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.startsWith('BIP')) v = v.slice(3);
+  v = v.slice(0, 12);
+  $('code').value = v ? 'BIP-' + v.match(/.{1,4}/g).join('-') : '';
+  $('go').hidden = true; $('check').hidden = false; $('msg1').textContent = ''; valid = '';
+});
+$('code').addEventListener('keydown', e => { if (e.key === 'Enter') $('check').click(); });
+
+$('check').onclick = async () => {
+  const msg = $('msg1'); msg.className = 'msg'; msg.textContent = '';
+  if (!CONFIGURED) { msg.className = 'msg bad'; msg.textContent = 'Service momentanément indisponible.'; return; }
+  if ($('code').value.length < 18) { msg.className = 'msg bad'; msg.textContent = 'Le code est incomplet : il comporte 12 caractères après « BIP ».'; return; }
+  $('check').disabled = true;
+  try {
+    const c = (await api('check_code', { p_code: $('code').value }))[0];
+    if (!c || !c.valid) { msg.className = 'msg bad'; msg.textContent = 'Ce code n\'existe pas. Vérifiez-le, caractère par caractère.'; }
+    else if (c.used) { msg.className = 'msg bad'; msg.innerHTML = 'Ce code a déjà été utilisé. Si c\'est le vôtre, utilisez l\'onglet « Retrouver mon livre d\'or ».'; }
+    else if (c.kind === 'upgrade') { msg.className = 'msg bad'; msg.textContent = 'Ce code ajoute la time capsule à un livre d\'or existant : saisissez-le depuis votre espace.'; }
+    else { valid = $('code').value; msg.className = 'msg good'; msg.textContent = 'Code valide ✓ ' + (c.kind === 'capsule' ? '— formule avec time capsule' : '— formule essentielle'); $('check').hidden = true; $('go').hidden = false; }
+  } catch (e) { msg.className = 'msg bad'; msg.textContent = 'Connexion impossible. Réessayez.'; }
+  $('check').disabled = false;
+};
+$('go').onclick = () => { try { sessionStorage.setItem(CODE_KEY, valid); } catch (e) {} location.href = 'espace.html'; };
+
+$('open').onclick = () => {
+  const v = $('secret').value.trim(), m = v.match(/([a-z0-9]{6,16})[.\- #]+([a-z0-9]{8,})\s*$/i);
+  if (!m) { $('msg2').className = 'msg bad'; $('msg2').textContent = 'Ce code n\'a pas le bon format (exemple : abcd1234-efgh567890).'; return; }
+  location.href = 'espace.html#' + m[1].toLowerCase() + '.' + m[2].toLowerCase();
+};
+$('secret').addEventListener('keydown', e => { if (e.key === 'Enter') $('open').click(); });
+</script>
+</body>
+</html>

@@ -3,700 +3,244 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Après le bip — Espace des mariés</title>
+<title>Après le bip — Le livre d'or sonore et photo de votre mariage</title>
+<meta name="description" content="Vos invités scannent un QR code, écoutent votre message de répondeur, puis vous laissent un mot de leur voix et leurs photos. Rien à installer. Film souvenir et time capsule en option.">
+<meta property="og:title" content="Après le bip — Le livre d'or sonore et photo de votre mariage">
+<meta property="og:description" content="Un QR code, votre message de répondeur, et les voix et photos de vos invités. Rien à installer.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  main { max-width: 1100px; margin: 0 auto; padding: 40px 20px 70px; text-align: center; }
-  .card { padding: 44px 28px; max-width: 560px; margin: 0 auto; }
-  .field { margin: 26px 0; }
-  .field label.caps { display: block; margin-bottom: 4px; }
-  .row { display: flex; gap: 22px; }
-  .row > div { flex: 1; }
-  .rec-zone { display: flex; flex-direction: column; align-items: center; gap: 18px; margin: 12px 0 8px; }
-  .live { display: grid; grid-template-columns: 340px 1fr; gap: 36px; align-items: start; }
-  @media (max-width: 900px) { .live { grid-template-columns: 1fr; } .row { flex-direction: column; gap: 0; } }
-  .qr-card { padding: 34px 28px 28px; }
-  .qr-card #qr svg { width: 100%; max-width: 250px; height: auto; display: block; background: #fff; padding: 12px; border: 1px solid var(--line); margin: 0 auto; }
-  .panel { padding: 34px 28px; text-align: left; max-width: none; }
-  .count { font-size: 4rem; line-height: 1; }
-  .msg { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding: 16px 0; border-top: 1px solid rgba(176,141,60,.25); }
-  .msg .who { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; }
-  .msg audio { grid-column: 1 / -1; }
-  .empty { padding: 30px 0 10px; text-align: center; }
-  .warn { margin: 18px 0 0; padding: 12px 14px; border: 1px dashed var(--gold); font-size: .85rem; color: var(--gold-deep); }
-  .tools { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 26px; align-items: center; }
-  .code { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; letter-spacing: .1em; padding: 12px 8px; border: 1px solid var(--line); background: #fff; margin: 10px 0 6px; user-select: all; word-break: break-all; }
-  .keep { margin-top: 22px; text-align: left; }
-  .stack { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 22px; }
-  .stack .btn { width: 100%; }
+  html { scroll-behavior: smooth; }
+  .gold { background: linear-gradient(135deg, #7a5a1c 0%, #b08d3c 38%, #d9b95f 55%, #96722a 80%, #7a5a1c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  .w { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; gap: 14px; }
+  header.top .brand { font-family: 'Pinyon Script', cursive; font-size: 2rem; text-decoration: none; }
+  header.top nav { display: flex; align-items: center; gap: 22px; }
+  header.top nav a.l { text-decoration: none; color: var(--soft); font-size: .78rem; letter-spacing: .2em; text-transform: uppercase; }
+  @media (max-width: 640px) { header.top nav a.l { display: none; } }
+  .btn { text-decoration: none; }
 
-  /* ---------- Carte imprimable (A5) ---------- */
-  #print { display: none; }
-  @page { size: A5 portrait; margin: 0; }
-  @media print {
-    html, body { background: #fff !important; }
-    body * { visibility: hidden; }
-    #print, #print * { visibility: visible; }
-    #print { display: block; position: fixed; top: 0; left: 0; width: 148mm; height: 210mm; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
-  .pc { position: relative; width: 148mm; height: 210mm; padding: 11mm; box-sizing: border-box; background: #fff; }
-  .pc-frame { position: relative; height: 100%; border: .35mm solid #b08d3c; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10mm 12mm 9mm; box-sizing: border-box; }
-  .pc-frame::before { content: ''; position: absolute; inset: 1.6mm; border: .2mm solid #d9c48a; pointer-events: none; }
-  .pc-corner { position: absolute; width: 8mm; height: 8mm; border: .5mm solid #b08d3c; }
-  .pc-corner.tl { top: 3.6mm; left: 3.6mm; border-right: 0; border-bottom: 0; } .pc-corner.tr { top: 3.6mm; right: 3.6mm; border-left: 0; border-bottom: 0; }
-  .pc-corner.bl { bottom: 3.6mm; left: 3.6mm; border-right: 0; border-top: 0; } .pc-corner.br { bottom: 3.6mm; right: 3.6mm; border-left: 0; border-top: 0; }
-  .pc-date { font-family: 'Jost', sans-serif; font-size: 8pt; letter-spacing: .38em; color: #8b7d68; text-transform: uppercase; margin: 0 0 2mm; }
-  .pc-names { font-family: 'Pinyon Script', cursive; font-size: 38pt; line-height: 1.05; color: #8a6a24; margin: 0; font-weight: 400; }
-  .pc-orn { display: flex; align-items: center; gap: 3mm; width: 46mm; margin: 5mm auto; }
-  .pc-orn::before, .pc-orn::after { content: ''; flex: 1; height: .2mm; background: #b08d3c; }
-  .pc-orn i { width: 1.6mm; height: 1.6mm; background: #b08d3c; transform: rotate(45deg); }
-  .pc-line { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15pt; color: #3b3226; margin: 0 0 5mm; }
-  .pc-qr { width: 40mm; padding: 2.4mm; background: #fff; border: .2mm solid #d9c48a; }
-  .pc-qr svg { display: block; width: 100%; height: auto; }
-  .pc-scan { font-family: 'Jost', sans-serif; font-size: 7pt; letter-spacing: .22em; text-transform: uppercase; color: #8b7d68; margin: 3.5mm 0 0; }
-  .pc-intro { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 10pt; line-height: 1.45; color: #6d6150; margin: 7mm 6mm 0; max-width: 92mm; }
-  .pc-foot { position: absolute; bottom: 5.2mm; left: 0; right: 0; font-family: 'Jost', sans-serif; font-size: 5.6pt; letter-spacing: .3em; text-transform: uppercase; color: #b9ad99; }
+  .hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 34px 0 70px; }
+  @media (max-width: 860px) { .hero { grid-template-columns: 1fr; text-align: center; padding-top: 10px; } }
+  .hero h1 { font-size: clamp(4rem, 12vw, 7rem); line-height: 1; padding: .05em .1em; }
+  .hero .lead { font-size: 1.5rem; max-width: 520px; margin: 18px 0 30px; }
+  @media (max-width: 860px) { .hero .lead { margin-left: auto; margin-right: auto; } }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; }
+  @media (max-width: 860px) { .cta { justify-content: center; } }
+  .tiny { font-size: .8rem; color: var(--soft); margin-top: 18px; letter-spacing: .04em; }
+
+  /* maquette */
+  .stage { position: relative; height: 470px; max-width: 420px; margin: 0 auto; width: 100%; }
+  .phone { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 232px; height: 450px; border-radius: 38px; border: 8px solid #3b3226; background: linear-gradient(160deg, #fff, #fbf6ea); box-shadow: 0 40px 70px -30px rgba(80,60,20,.55); padding: 34px 16px 18px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 9px; z-index: 2; }
+  .phone::before { content: ''; position: absolute; top: 9px; left: 50%; width: 62px; height: 6px; transform: translateX(-50%); border-radius: 4px; background: #3b3226; opacity: .85; }
+  .phone .caps { font-size: .52rem; letter-spacing: .26em; }
+  .phone .nm { font-family: 'Pinyon Script', cursive; font-size: 2.1rem; line-height: 1.05; }
+  .phone .lead { font-size: .95rem; line-height: 1.3; margin: 2px 0 6px; }
+  .phone .btn { padding: 11px 12px; min-height: 0; font-size: .5rem; letter-spacing: .16em; width: 100%; }
+  .phone .qrm { width: 78px; height: 78px; margin-top: auto; padding: 5px; background: #fff; border: 1px solid var(--line); }
+  .phone .qrm svg { display: block; width: 100%; height: 100%; }
+  .polaroid { position: absolute; background: #fff; padding: 9px 9px 30px; box-shadow: 0 18px 30px -16px rgba(80,60,20,.55); z-index: 1; text-align: center; }
+  .polaroid i { display: block; width: 128px; height: 100px; }
+  .polaroid b { display: block; font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: 1.15rem; color: var(--gold-deep); margin-top: 3px; line-height: 1; }
+  .p1 { left: -6px; top: 72px; transform: rotate(-9deg); } .p1 i { background: linear-gradient(135deg, #e9c9bf, #c99a6c); }
+  .p2 { right: -4px; top: 170px; transform: rotate(8deg); z-index: 3; } .p2 i { background: linear-gradient(135deg, #bfd3c4, #6f95a8); }
+  .p3 { left: 14px; bottom: -4px; transform: rotate(5deg); z-index: 3; } .p3 i { background: linear-gradient(135deg, #f3e0b0, #d6a24a); }
+  @media (max-width: 420px) { .p1 { left: -14px; } .p2 { right: -12px; } }
+
+  section.s { padding: 64px 0; }
+  section.s h2 { font-family: 'Pinyon Script', cursive; font-weight: 400; font-size: clamp(2.4rem, 7vw, 3.6rem); text-align: center; margin-bottom: 6px; line-height: 1.15; }
+  section.s .sub { text-align: center; max-width: 620px; margin: 0 auto 38px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 820px) { .steps { grid-template-columns: 1fr; } }
+  .step { padding: 34px 26px 30px; text-align: center; }
+  .step .n { font-family: 'Cormorant Garamond', serif; font-size: 3.4rem; line-height: 1; }
+  .step h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; font-weight: 500; margin: 8px 0 10px; }
+  .step p { font-size: .95rem; line-height: 1.65; color: #5d5242; }
+  .feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px 30px; }
+  @media (max-width: 860px) { .feats { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feats { grid-template-columns: 1fr; } }
+  .feat svg { width: 34px; height: 34px; color: var(--gold); margin-bottom: 10px; }
+  .feat h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 500; margin: 0 0 6px; }
+  .feat p { font-size: .92rem; line-height: 1.6; color: #5d5242; }
+  .feat .tag { font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-deep); border: 1px solid var(--line); padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+
+  .capsule { padding: 54px 32px; text-align: center; max-width: 780px; margin: 0 auto; }
+  .capsule .lead { font-size: 1.35rem; max-width: 560px; margin: 14px auto 0; }
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 820px; margin: 0 auto; }
+  @media (max-width: 720px) { .plans { grid-template-columns: 1fr; } }
+  .plan { padding: 38px 28px 32px; text-align: center; display: flex; flex-direction: column; }
+  .plan h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 500; margin: 0; }
+  .plan .price { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; margin: 8px 0 2px; min-height: 1.2em; }
+  .plan .price:empty { display: none; }
+  .plan ul { list-style: none; padding: 0; margin: 14px 0 22px; text-align: left; font-size: .92rem; line-height: 1.5; flex: 1; }
+  .plan li { padding: 7px 0 7px 26px; position: relative; border-top: 1px solid rgba(176,141,60,.18); }
+  .plan li::before { content: ''; position: absolute; left: 4px; top: 14px; width: 8px; height: 8px; transform: rotate(45deg); background: var(--gold-grad); }
+  .plan .buy { display: flex; flex-direction: column; gap: 10px; }
+  .soon { font-size: .82rem; color: var(--soft); font-style: italic; }
+
+  details { border-top: 1px solid var(--line); padding: 4px 0; }
+  details:last-of-type { border-bottom: 1px solid var(--line); }
+  summary { cursor: pointer; padding: 16px 4px; font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; color: var(--gold-deep); font-size: 1.5rem; line-height: 1; }
+  details[open] summary::after { content: '–'; }
+  details p { padding: 0 4px 18px; font-size: .95rem; line-height: 1.7; color: #5d5242; max-width: 760px; }
+  footer { text-align: center; padding: 50px 22px 60px; color: var(--soft); font-size: .8rem; letter-spacing: .06em; }
+  footer .brand { font-family: 'Pinyon Script', cursive; font-size: 2rem; display: block; margin-bottom: 6px; }
 </style>
 </head>
 <body>
-<main>
 
-  <!-- CRÉATION -->
-  <section id="setup" class="fade">
-    <p class="caps">Votre livre d'or</p>
-    <h1 class="script gold names" style="margin-top:8px">Après le bip</h1>
-    <div class="orn"><i></i></div>
-    <div class="card">
-      <p class="lead">Préparez ce que vos invités trouveront en scannant le QR code.</p>
-      <div id="s-names">
-        <div class="field row">
-          <div><label class="caps" for="n1">Marié(e)</label><input type="text" id="n1" placeholder="Camille" autocomplete="off" maxlength="40"></div>
-          <div><label class="caps" for="n2">Marié(e)</label><input type="text" id="n2" placeholder="Julien" autocomplete="off" maxlength="40"></div>
-        </div>
-        <div class="field"><label class="caps" for="dt">Date du mariage</label><input type="date" id="dt"></div>
-        <div class="field" style="margin-top:6px">
-          <label class="caps" for="e1">Où envoyer votre lien privé et votre code ?</label>
-          <input type="email" id="e1" placeholder="votre@email.fr" autocomplete="email">
-          <input type="email" id="e2" placeholder="e-mail de l'autre marié(e) (facultatif)" autocomplete="off">
-          <p class="hint" style="margin-top:8px">Indispensable pour retrouver vos messages et vos photos. Votre adresse n'est pas conservée.</p>
-        </div>
+<div class="w">
+  <header class="top">
+    <a class="brand script gold" href="./">Après le bip</a>
+    <nav>
+      <a class="l" href="#comment">Comment ça marche</a>
+      <a class="l" href="#formules">Formules</a>
+      <a class="btn" href="acces.html" style="padding:12px 22px;min-height:0">J'ai un code</a>
+    </nav>
+  </header>
+
+  <!-- ACCUEIL -->
+  <section class="hero">
+    <div>
+      <p class="caps">Le livre d'or sonore et photo de votre mariage</p>
+      <h1 class="script gold">Après<br>le bip</h1>
+      <p class="lead">Vos invités scannent un QR code, entendent votre message de répondeur, puis vous laissent un mot de leur voix et leurs plus belles photos. Rien à installer.</p>
+      <div class="cta">
+        <a class="btn fill" href="#formules">Découvrir les formules</a>
+        <a class="btn" href="acces.html">J'ai un code</a>
       </div>
-      <div id="opts">
-        <div class="orn"><i></i></div>
-        <p class="caps" style="margin-bottom:4px">Ce que vos invités pourront faire</p>
-        <label class="opt"><input type="checkbox" id="o-audio" checked><div><b>Laisser un message vocal</b><span>Ils entendent votre répondeur, puis parlent après le bip.</span></div></label>
-        <label class="opt"><input type="checkbox" id="o-media" checked><div><b>Envoyer photos et vidéos</b><span>Sur le moment, ou en lot en fin de soirée.</span></div></label>
-        <label class="opt"><input type="checkbox" id="o-screen"><div><b>Diffuser sur un écran</b><span>Au lieu d'imprimer, affichez le QR code sur une télé. Les photos prises sur le moment y défilent en direct ; les lots et les vidéos restent privés.</span></div></label>
+      <p class="tiny">Pour les mariés et leurs invités · Un smartphone suffit</p>
+    </div>
+    <div class="stage" aria-hidden="true">
+      <div class="polaroid p1"><i></i><b>Élodie</b></div>
+      <div class="polaroid p2"><i></i><b>Marc</b></div>
+      <div class="polaroid p3"><i></i><b>Zoé</b></div>
+      <div class="phone">
+        <p class="caps">12 juin 2027</p>
+        <p class="nm gold">Camille<br>&amp; Julien</p>
+        <div class="orn" style="margin:2px auto;width:70%"><i></i></div>
+        <p class="lead">Vous êtes invité(e) à laisser un message aux mariés.</p>
+        <span class="btn fill">Laisser un message vocal</span>
+        <span class="btn">Partager mes photos</span>
+        <div class="qrm" id="qrm"></div>
       </div>
-      <div id="gblock">
-        <div class="orn"><i></i></div>
-        <p class="caps">Votre message d'accueil</p>
-        <div class="rec-zone" id="gmic">
-          <button class="round" id="grec" aria-label="Enregistrer"></button>
-          <p class="hint" id="ghint">Touchez pour enregistrer — environ 20 secondes.</p>
-        </div>
-        <audio id="gplay" controls hidden></audio>
-        <p class="hint" style="margin-top:10px;font-style:italic" id="gsample">« Bonjour, vous êtes bien chez Camille et Julien… Laissez-nous un message après le bip. »</p>
-        <div class="gphone">
-          <button class="link" id="gphone-btn">Pas de micro ? Enregistrer avec mon smartphone</button>
-          <div id="gphone-box" hidden>
-            <div id="gphone-qr"></div>
-            <p class="hint" id="gphone-hint">Scannez ce QR code avec votre smartphone pour enregistrer votre message d'accueil.</p>
-          </div>
-        </div>
-      </div>
-      <div id="cfgwarn" class="warn" hidden>La connexion à Supabase n'est pas encore réglée : ouvrez <b>config.js</b> et renseignez l'adresse et la clé publique.</div>
-      <div class="field" style="margin-bottom:0"><button class="btn fill" id="go" disabled>Créer mon livre d'or</button></div>
-      <p class="hint" id="err" style="margin-top:14px;color:#a4472f"></p>
-      <button class="link" id="restore" style="margin-top:14px">J'ai déjà un livre d'or</button>
     </div>
   </section>
 
-  <!-- ESPACE DES MARIÉS -->
-  <section id="live" hidden class="fade">
-    <p class="caps" id="ldate"></p>
-    <h1 class="script gold names" id="lnames" style="margin:6px 0 4px"></h1>
-    <p class="lead" id="llead"></p>
-    <div class="orn"><i></i></div>
-    <div class="live">
-      <div class="card qr-card">
-        <div id="qr"></div>
-        <div class="stack">
-          <button class="btn fill" id="screenbtn">Afficher sur un écran</button>
-          <button class="btn" id="printbtn">Imprimer la carte</button>
-        </div>
-        <div class="keep">
-          <p class="caps">Votre code secret</p>
-          <div class="code" id="code"></div>
-          <p class="hint">Il permet de retrouver vos messages et vos photos. <b>Gardez-le</b> : sans lui, personne ne peut les récupérer.</p>
-          <div class="tools" style="margin-top:14px;justify-content:flex-start;gap:6px 18px">
-            <button class="link" id="copylink" style="padding-left:0">Copier mon lien privé</button>
-            <button class="link" id="mailbtn">Recevoir par e-mail</button>
-            <button class="link" id="reg">Changer l'annonce</button>
-          </div>
-          <p class="hint" id="mailstat" style="margin-top:8px"></p>
-          <div id="nogreet" class="warn" hidden>Votre annonce n'est pas encore enregistrée : vos invités arriveront directement au bip. <button class="link" id="nogreet-btn" style="padding:4px 0">Enregistrer maintenant</button></div>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="tabs" id="tabs" hidden>
-          <button class="tab" data-tab="audio">Messages vocaux <span id="tc-audio"></span></button>
-          <button class="tab" data-tab="media">Photos &amp; vidéos <span id="tc-media"></span></button>
-          <button class="tab" data-tab="montage">Montage</button>
-        </div>
-
-        <div class="dlbar">
-          <button class="btn fill" id="dlall" disabled>Tout télécharger</button>
-          <div class="tools" id="parts" style="margin-top:12px"></div>
-          <p class="hint" id="dlhint">Messages vocaux, photos et vidéos : tout dans un seul téléchargement.</p>
-        </div>
-
-        <section id="p-audio">
-          <div style="display:flex;align-items:baseline;gap:14px">
-            <span class="count script gold" id="count">0</span>
-            <span class="caps" id="clabel">message</span>
-            <span class="hint" id="sync" style="margin-left:auto"></span>
-          </div>
-          <div id="list"></div>
-          <div class="empty" id="empty"><p class="lead">Les messages apparaîtront ici, au fil de la soirée.</p></div>
-          <div class="tools"><button class="link" id="refresh">Actualiser</button></div>
-        </section>
-
-        <section id="p-media" hidden>
-          <div style="display:flex;align-items:baseline;gap:14px">
-            <span class="count script gold" id="mcount">0</span>
-            <span class="caps" id="mlabel">fichier</span>
-            <span class="hint" id="msync" style="margin-left:auto"></span>
-          </div>
-          <p class="hint" id="msize" style="margin:6px 0 18px"></p>
-          <div class="grid" id="grid"></div>
-          <div class="empty" id="mempty"><p class="lead">Les photos et vidéos apparaîtront ici, au fil de la soirée.</p></div>
-          <div class="tools"><button class="link" id="mrefresh">Actualiser</button></div>
-        </section>
-
-        <section id="p-montage" hidden>
-          <p class="lead" style="text-align:center">Un film souvenir : votre répondeur, puis tous les messages de la soirée, pendant que vos photos défilent.</p>
-          <div class="mstat" id="mstat"></div>
-          <canvas class="mcanvas" id="mc" width="1280" height="720"></canvas>
-          <div class="tools">
-            <button class="btn" id="mplay">Aperçu</button>
-            <button class="btn fill" id="mexport">Créer la vidéo (MP4)</button>
-          </div>
-          <div class="bar" id="mbar" style="height:4px;margin-top:16px" hidden><i></i></div>
-          <p class="hint" id="mhint" style="margin-top:10px;text-align:center"></p>
-          <div id="mres" hidden style="margin-top:18px;text-align:center">
-            <video id="mvid" controls playsinline style="width:100%;border:1px solid var(--line)"></video>
-            <div class="tools"><a class="btn fill" id="mdl" download="montage.mp4">Télécharger le montage</a></div>
-          </div>
-          <div style="margin-top:22px;border-top:1px solid rgba(176,141,60,.25);padding-top:14px">
-            <p class="hint">Vous choisissez ce qui entre dans le film : cochez « Dans le montage » sous chaque message vocal, et touchez l'étoile ★ sur vos photos préférées. Sans sélection de photos, elles sont choisies automatiquement pour correspondre à la durée du son.</p>
-            <div class="tools" style="margin-top:8px"><button class="link" id="mall">Tous les messages</button><button class="link" id="mnone">Aucun message</button><button class="link" id="mauto">Photos : sélection automatique</button></div>
-          </div>
-        </section>
-      </div>
+  <!-- COMMENT ÇA MARCHE -->
+  <section class="s" id="comment">
+    <h2 class="gold">Trois gestes, et tout est dit</h2>
+    <p class="lead sub">Vous préparez avant la fête. Vos invités n'ont rien à faire d'autre que scanner.</p>
+    <div class="steps">
+      <div class="card step"><div class="n gold">1</div><h3>Vous préparez</h3><p>Enregistrez votre répondeur, depuis votre ordinateur ou votre smartphone. Imprimez votre carte à QR code, ou affichez-le sur un écran.</p></div>
+      <div class="card step"><div class="n gold">2</div><h3>Vos invités participent</h3><p>Ils scannent, écoutent votre annonce, puis parlent après le bip (20 secondes). Ils envoient leurs photos sur le moment, ou en lot en fin de soirée.</p></div>
+      <div class="card step"><div class="n gold">3</div><h3>Vous gardez tout</h3><p>Tous vos souvenirs dans un seul téléchargement, et un film souvenir : votre répondeur, les messages de la soirée et vos photos qui défilent.</p></div>
     </div>
   </section>
-</main>
 
-<!-- Carte imprimable -->
-<div id="print"><div class="pc"><div class="pc-frame">
-  <span class="pc-corner tl"></span><span class="pc-corner tr"></span><span class="pc-corner bl"></span><span class="pc-corner br"></span>
-  <p class="pc-date" id="p-date"></p>
-  <h1 class="pc-names" id="p-names"></h1>
-  <div class="pc-orn"><i></i></div>
-  <p class="pc-line" id="p-line"></p>
-  <div class="pc-qr" id="p-qr"></div>
-  <p class="pc-scan">Scannez avec l'appareil photo de votre téléphone</p>
-  <p class="pc-intro" id="p-intro"></p>
-  <p class="pc-foot">Après le bip · lebipdesmaries.fr</p>
-</div></div></div>
+  <!-- CE QUE VOUS OBTENEZ -->
+  <section class="s">
+    <h2 class="gold">Ce que vous obtenez</h2>
+    <p class="lead sub">Un livre d'or qui a la voix de vos invités.</p>
+    <div class="feats">
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><h3>Le répondeur des mariés</h3><p>Votre voix accueille chaque invité, comme au temps du téléphone fixe. Puis le bip, et c'est à eux de parler.</p></div>
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><h3>Photos et vidéos</h3><p>Sur le moment avec l'appareil photo (selfie compris, en miroir), ou en lot depuis la galerie, tranquillement en fin de soirée.</p></div>
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M9 21h6M12 17v4"/></svg><h3>L'écran de la soirée</h3><p>Affichez le QR code sur une télé : les photos prises sur le moment s'y affichent en cadre photo. Les lots et les vidéos restent privés.</p></div>
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M3 10h18M7 6v12M17 6v12"/></svg><h3>Le film souvenir</h3><p>Une vidéo élégante, créée en quelques minutes : votre annonce, les messages que vous choisissez, et vos photos qui défilent au rythme des voix.</p></div>
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><h3>Privé, sans application</h3><p>Aucun compte pour vos invités. Vous seuls accédez aux souvenirs, avec votre code secret. Vos données sont hébergées en Europe.</p></div>
+      <div class="feat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></svg><h3>Time capsule <span class="tag">option</span></h3><p>Faites-vous envoyer vos souvenirs plus tard : au premier anniversaire, par e-mail, à deux adresses par sécurité.</p></div>
+    </div>
+  </section>
+
+  <!-- TIME CAPSULE -->
+  <section class="s" style="padding-top:20px">
+    <div class="card capsule">
+      <p class="caps">En option</p>
+      <h2 class="gold" style="margin-top:6px">Dans un an, ils vous reparlent</h2>
+      <p class="lead">Choisissez une date. Vos messages vocaux et vos photos sont conservés, puis vous sont envoyés ce jour-là, par e-mail, à deux adresses par sécurité. Comme une lettre à ouvrir plus tard.</p>
+    </div>
+  </section>
+
+  <!-- FORMULES -->
+  <section class="s" id="formules">
+    <h2 class="gold">Choisissez votre formule</h2>
+    <p class="lead sub">Un paiement unique par mariage. Vous recevez un code d'accès personnel.</p>
+    <div class="plans">
+      <div class="card plan">
+        <h3>Essentielle</h3>
+        <div class="price gold" id="price-std"></div>
+        <ul>
+          <li>QR code et carte à imprimer, ou affichage sur écran</li>
+          <li>Messages vocaux de 20 secondes</li>
+          <li>Photos et vidéos des invités</li>
+          <li>Film souvenir (montage vidéo)</li>
+          <li>Tout télécharger en un clic</li>
+          <li>Souvenirs conservés 90 jours après le mariage</li>
+        </ul>
+        <div class="buy" id="buy-std"></div>
+      </div>
+      <div class="card plan">
+        <h3>Avec time capsule</h3>
+        <div class="price gold" id="price-cap"></div>
+        <ul>
+          <li>Tout ce que contient la formule essentielle</li>
+          <li>Vos souvenirs conservés jusqu'à la date choisie</li>
+          <li>Livraison par e-mail le jour J, à deux adresses</li>
+          <li>Messages vocaux et/ou photos au choix</li>
+        </ul>
+        <div class="buy" id="buy-cap"></div>
+      </div>
+    </div>
+    <p class="tiny" style="text-align:center;margin-top:26px">Vous avez déjà un code ? <a href="acces.html" style="color:var(--gold-deep)">Accéder à mon espace</a></p>
+  </section>
+
+  <!-- QUESTIONS -->
+  <section class="s" id="faq">
+    <h2 class="gold">Questions fréquentes</h2>
+    <p class="lead sub">Tout ce que vos invités — et vous — voudrez savoir.</p>
+    <div style="max-width:820px;margin:0 auto">
+      <details><summary>Faut-il installer une application ?</summary><p>Non. Vos invités scannent le QR code avec l'appareil photo de leur téléphone : tout se passe dans leur navigateur, sans compte à créer.</p></details>
+      <details><summary>Qui peut écouter les messages et voir les photos ?</summary><p>Vous seuls, grâce à votre code secret. Les invités peuvent déposer des messages et des photos, mais jamais voir ceux des autres. L'écran de la soirée ne montre que les photos prises sur le moment, et seulement si vous l'avez choisi.</p></details>
+      <details><summary>Combien de temps nos souvenirs sont-ils conservés ?</summary><p>90 jours après la date du mariage, le temps de tout télécharger. Passé ce délai, ils sont supprimés automatiquement. Avec la time capsule, ils sont conservés jusqu'à la date de livraison que vous choisissez.</p></details>
+      <details><summary>Les messages durent combien de temps ?</summary><p>20 secondes au maximum : assez pour un mot sincère, pas assez pour s'éterniser. Cela garde le film souvenir rythmé.</p></details>
+      <details><summary>Et les vidéos ?</summary><p>Vos invités peuvent envoyer de courtes vidéos (50 Mo maximum, soit une vingtaine de secondes). Elles sont stockées et incluses dans votre téléchargement, mais elles ne font pas partie du film souvenir.</p></details>
+      <details><summary>Que se passe-t-il s'il n'y a pas de réseau au moment de l'envoi ?</summary><p>La photo ou le message reste sur le téléphone de l'invité et repart dès que le réseau revient, ou lorsqu'il rouvre le QR code.</p></details>
+      <details><summary>De quel matériel ai-je besoin ?</summary><p>Un ordinateur ou un smartphone pour préparer votre livre d'or. Pour créer le film souvenir : un ordinateur avec Chrome, Edge ou Safari récent. Pour l'écran de la soirée : une télé ou un ordinateur avec un navigateur.</p></details>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <span class="brand script gold">Après le bip</span>
+  Le livre d'or sonore et photo de votre mariage
+  <div style="margin-top:14px"><a href="acces.html" style="color:var(--gold-deep)">J'ai un code</a></div>
+</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
 <script src="config.js"></script>
-<script src="common.js"></script>
-<script src="montage.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
-const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
-const PART_BYTES = 150 * 1048576;   // taille maximale d'un zip
-let ev = null;                      // { id, secret }
-let info = { n1: '', n2: '', date: '', audio: true, media: true, screen: false };
-let greeting = null;                // enregistré sur cet ordinateur : { blob, mime }
-let greetingBlob = null;            // annonce déjà enregistrée sur le serveur
-let replacing = false, phoneMode = false, phoneGot = false, phoneTimer = null;
-let messages = [], blobs = {}, pollA = null, pollM = null;
-let mitems = [], murls = {}, murlsAt = 0, tiles = {};
-let sel = { audioOff: new Set(), photos: new Set() };
-let emails = [];
+// Anciens liens privés (https://lebipdesmaries.fr/#identifiant.code) : on les redirige vers l'espace des mariés
+if (/^#[a-z0-9]{6,16}\.[a-z0-9]{8,}$/i.test(location.hash)) location.replace('espace.html' + location.hash);
 
-$('grec').innerHTML = MIC;
-$('cfgwarn').hidden = CONFIGURED;
-const clean = s => (s || 'Invite').normalize('NFC').replace(/[\\/:*?"<>|]+/g, '').trim().replace(/\s+/g, '_') || 'Invite';
-const hhmm = iso => { const t = new Date(iso); return String(t.getHours()).padStart(2, '0') + 'h' + String(t.getMinutes()).padStart(2, '0'); };
-const clock = iso => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-const guestUrl = () => new URL('invite.html', location.href).href + '#' + ev.id;
-const recordUrl = () => new URL('record.html', location.href).href + '#' + ev.id + '.' + ev.secret;
-const screenUrl = () => new URL('screen.html', location.href).href + '#' + ev.id + '.' + ev.secret;
-const privateUrl = () => new URL('index.html', location.href).href.replace(/index\.html.*$/, '') + '#' + ev.id + '.' + ev.secret;
-const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
-function qrSvg(text, extra) { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 8, margin: 0, scalable: true }).replace(/fill="black"/g, 'fill="#3b3226"'); }
+// QR code décoratif de la maquette
+try { const q = qrcode(0, 'M'); q.addData(location.origin + '/'); q.make(); document.getElementById('qrm').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }).replace(/fill="black"/g, 'fill="#3b3226"'); } catch (e) {}
 
-/* ---------- Création ---------- */
-const hasGreeting = () => !!greeting || phoneGot;
-function refreshSetup() {
-  const a = $('o-audio').checked, m = $('o-media').checked;
-  $('gblock').hidden = !a;
-  const mails = [$('e1').value.trim(), $('e2').value.trim()].filter(Boolean);
-  const mailsOk = mails.length > 0 && mails.every(validEmail);
-  const namesOk = $('n1').value.trim() && $('n2').value.trim();
-  $('go').disabled = !(CONFIGURED && (replacing ? hasGreeting() : (namesOk && mailsOk && (a || m) && (!a || hasGreeting()))));
-  $('gphone-btn').disabled = !(replacing || namesOk);
-  if (phoneMode) ['n1', 'n2', 'dt', 'o-audio', 'o-media', 'o-screen'].forEach(i => $(i).disabled = true);
+// Boutons d'achat : n'affichés que s'ils sont configurés dans config.js (CFG.shop)
+const shop = (typeof CFG !== 'undefined' && CFG.shop) || {};
+function buy(id, payUrl, price) {
+  const box = document.getElementById('buy-' + id), pr = document.getElementById('price-' + (id === 'std' ? 'std' : 'cap'));
+  if (price) pr.textContent = price;
+  const btns = [];
+  if (shop.etsyUrl) btns.push('<a class="btn fill" href="' + shop.etsyUrl + '" target="_blank" rel="noopener">Acheter sur Etsy</a>');
+  if (payUrl) btns.push('<a class="btn ' + (btns.length ? '' : 'fill') + '" href="' + payUrl + '">Payer en ligne</a>');
+  box.innerHTML = btns.length ? btns.join('') + '<p class="soon">Votre code d\'accès vous est remis aussitôt après l\'achat.</p>' : '<p class="soon">Bientôt disponible à l\'achat.</p>';
 }
-['n1', 'n2', 'dt', 'e1', 'e2', 'o-audio', 'o-media', 'o-screen'].forEach(i => { $(i).addEventListener('input', refreshSetup); $(i).addEventListener('change', refreshSetup); });
-$('n1').addEventListener('input', () => { const n1 = $('n1').value.trim() || 'Camille', n2 = $('n2').value.trim() || 'Julien'; $('gsample').textContent = '« Bonjour, vous êtes bien chez ' + n1 + ' et ' + n2 + '… Laissez-nous un message après le bip. »'; });
-$('n2').addEventListener('input', () => $('n1').dispatchEvent(new Event('input')));
-
-let grecording = null;
-$('grec').onclick = async () => {
-  const b = $('grec');
-  if (grecording) {
-    const r = await grecording.stop(); grecording = null;
-    b.classList.remove('rec'); b.innerHTML = MIC;
-    greeting = { blob: r.blob, mime: r.mime };
-    $('gplay').src = URL.createObjectURL(r.blob); $('gplay').hidden = false;
-    $('ghint').textContent = 'Écoutez-vous, ou touchez pour recommencer.';
-    refreshSetup(); return;
-  }
-  try {
-    grecording = await startRecorder(l => b.style.setProperty('--lvl', l));
-    b.classList.add('rec'); b.innerHTML = STOP; $('ghint').textContent = 'Enregistrement… touchez pour terminer.';
-  } catch (e) { $('ghint').textContent = 'Micro inaccessible : utilisez plutôt votre smartphone (lien ci-dessous).'; }
-};
-
-/* Pas de micro sur l'ordinateur : le livre d'or est créé tout de suite, et l'annonce s'enregistre sur le smartphone */
-function readInfo() { return { n1: $('n1').value.trim(), n2: $('n2').value.trim(), date: $('dt').value, audio: $('o-audio').checked, media: $('o-media').checked, screen: $('o-screen').checked }; }
-async function createEventNow(b64, mime) {
-  for (let i = 0; i < 4; i++) {
-    const id = randId(8), secret = randId(10);
-    try { await api('create_event', { p_id: id, p_secret: secret, p_n1: info.n1, p_n2: info.n2, p_date: info.date || null, p_greeting: b64, p_mime: mime, p_opt_audio: info.audio, p_opt_media: info.media, p_opt_screen: info.screen }); return { id, secret }; }
-    catch (e) { if (i === 3 || !/duplicate|unique/i.test(e.message)) throw e; }
-  }
-}
-function persist() { localStorage.setItem(PREFIX + 'event', JSON.stringify({ ...ev, info })); location.hash = ev.id + '.' + ev.secret; }
-
-$('gphone-btn').onclick = async () => {
-  $('err').textContent = '';
-  try {
-    if (!ev) { info = readInfo(); ev = await createEventNow(null, null); persist(); phoneMode = true; }
-    else phoneMode = true;
-    $('gmic').hidden = true; $('gplay').hidden = true; $('gphone-btn').hidden = true;
-    $('gphone-qr').innerHTML = qrSvg(recordUrl()); $('gphone-box').hidden = false;
-    $('gphone-hint').textContent = 'Scannez ce QR code avec votre smartphone pour enregistrer votre message d\'accueil. Cette page se met à jour toute seule.';
-    refreshSetup();
-    clearInterval(phoneTimer);
-    const before = greetingBlob ? 1 : 0, startedAt = Date.now();
-    phoneTimer = setInterval(async () => {
-      try {
-        const g = (await api('get_event', { p_id: ev.id }))[0];
-        if (g && g.greeting && (!before || Date.now() - startedAt > 4000 && g.greeting !== (greetingBlob && greetingBlob._b64))) {
-          clearInterval(phoneTimer); phoneGot = true;
-          const blob = b64ToBlob(g.greeting, g.mime); blob._b64 = g.greeting; greetingBlob = blob;
-          $('gphone-qr').innerHTML = ''; $('gplay').src = URL.createObjectURL(blob); $('gplay').hidden = false;
-          $('gphone-hint').innerHTML = '<span class="ok">Annonce reçue ✓</span> Écoutez-la, puis continuez.';
-          refreshSetup();
-        }
-      } catch (e) {}
-    }, 3000);
-  } catch (e) { $('err').textContent = 'Impossible de préparer l\'enregistrement : ' + e.message; }
-};
-
-function leaveReplace() {
-  clearInterval(phoneTimer);
-  replacing = false; greeting = null; phoneMode = false; phoneGot = false;
-  $('s-names').hidden = false; $('opts').hidden = false; $('restore').hidden = false;
-  $('gmic').hidden = false; $('gphone-box').hidden = true; $('gphone-btn').hidden = false; $('gplay').hidden = true;
-  $('go').textContent = 'Créer mon livre d\'or'; $('ghint').textContent = 'Touchez pour enregistrer — environ 20 secondes.';
-  ['n1', 'n2', 'dt', 'o-audio', 'o-media', 'o-screen'].forEach(i => $(i).disabled = false);
-}
-
-$('go').onclick = async () => {
-  $('err').textContent = '';
-  $('go').disabled = true;
-  if (replacing) {
-    try {
-      if (greeting) await api('update_greeting', { p_event: ev.id, p_secret: ev.secret, p_greeting: await blobToB64(greeting.blob), p_mime: greeting.mime });
-      leaveReplace(); await showLive();
-    } catch (e) { $('err').textContent = 'Échec : ' + e.message; refreshSetup(); }
-    return;
-  }
-  info = readInfo();
-  emails = [$('e1').value.trim(), $('e2').value.trim()].filter(Boolean);
-  $('go').textContent = 'Création…';
-  try {
-    if (!(ev && phoneMode)) { ev = await createEventNow(info.audio ? await blobToB64(greeting.blob) : null, info.audio ? greeting.mime : null); }
-    persist(); phoneMode = false;
-    await showLive();
-    sendMail(emails);
-  } catch (e) { $('err').textContent = 'Création impossible : ' + e.message; }
-  $('go').textContent = 'Créer mon livre d\'or'; refreshSetup();
-};
-
-$('restore').onclick = () => {
-  const v = (prompt('Collez votre code secret (ou votre lien privé) :') || '').trim();
-  const m = v.match(/([a-z0-9]{6,16})[.\- ]+([a-z0-9]{8,})\s*$/i);
-  if (m) load(m[1].toLowerCase(), m[2].toLowerCase());
-  else if (v) $('err').textContent = 'Ce code n\'a pas le bon format.';
-};
-
-function startReplace() {
-  replacing = true; greeting = null; phoneGot = false; $('gplay').hidden = true; $('ghint').textContent = 'Enregistrez votre nouvelle annonce.';
-  $('s-names').hidden = true; $('opts').hidden = true; $('restore').hidden = true; $('gmic').hidden = false; $('gphone-box').hidden = true; $('gphone-btn').hidden = false;
-  $('o-audio').checked = true; $('go').textContent = 'Terminer';
-  $('live').hidden = true; $('setup').hidden = false; refreshSetup();
-}
-$('reg').onclick = startReplace; $('nogreet-btn').onclick = startReplace;
-
-/* ---------- E-mail du lien privé ---------- */
-function mailText() {
-  return 'Bonjour,\n\nVotre livre d\'or « Après le bip » est prêt.\n\nVotre lien privé (à garder précieusement) :\n' + privateUrl() + '\n\nVotre code secret :\n' + ev.id + '-' + ev.secret +
-    '\n\nAvec ce lien ou ce code, vous retrouvez à tout moment les messages vocaux, les photos et les vidéos de vos invités, et vous créez votre montage.\n\nLien que vos invités reçoivent en scannant le QR code :\n' + guestUrl() + '\n\nBelle fête !';
-}
-async function sendMail(to) {
-  if (!to.length) return;
-  $('mailstat').textContent = 'Envoi de l\'e-mail…';
-  try { await fnCall('notify', { event: ev.id, secret: ev.secret, to }); $('mailstat').innerHTML = '<span class="ok">E-mail envoyé ✓</span> à ' + to.join(' et ') + ' (pensez à regarder les courriers indésirables).'; }
-  catch (e) {
-    const href = 'mailto:' + to.map(encodeURIComponent).join(',') + '?subject=' + encodeURIComponent('Mon livre d\'or « Après le bip » — lien et code secret') + '&body=' + encodeURIComponent(mailText());
-    $('mailstat').innerHTML = e.message === 'mail_not_configured'
-      ? 'L\'envoi automatique n\'est pas encore activé. <a href="' + href + '" style="color:var(--gold-deep)">Ouvrir un e-mail prêt à envoyer</a>.'
-      : 'L\'envoi a échoué (' + e.message + '). <a href="' + href + '" style="color:var(--gold-deep)">Ouvrir un e-mail prêt à envoyer</a>.';
-  }
-}
-$('mailbtn').onclick = () => {
-  const v = (prompt('À quelle adresse envoyer votre lien privé et votre code ?', emails[0] || '') || '').split(/[,; ]+/).map(s => s.trim()).filter(Boolean).slice(0, 2);
-  if (!v.length) return;
-  if (!v.every(validEmail)) { $('mailstat').textContent = 'Adresse e-mail invalide.'; return; }
-  emails = v; sendMail(v);
-};
-
-/* ---------- Espace des mariés ---------- */
-const TABS = () => [info.audio && 'audio', info.media && 'media', info.audio && 'montage'].filter(Boolean);
-function showTab(t) {
-  for (const x of ['audio', 'media', 'montage']) $('p-' + x).hidden = x !== t;
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-}
-document.querySelectorAll('.tab').forEach(b => b.onclick = () => { showTab(b.dataset.tab); if (b.dataset.tab === 'montage') updateMontageStats(); });
-
-const selKey = () => PREFIX + 'sel-' + ev.id;
-function loadSel() { try { const s = JSON.parse(localStorage.getItem(selKey()) || '{}'); sel = { audioOff: new Set(s.audioOff || []), photos: new Set(s.photos || []) }; } catch (e) { sel = { audioOff: new Set(), photos: new Set() }; } }
-function saveSel() { try { localStorage.setItem(selKey(), JSON.stringify({ audioOff: [...sel.audioOff], photos: [...sel.photos] })); } catch (e) {} updateMontageStats(); }
-
-async function loadGreeting() {
-  try {
-    const g = (await api('get_event', { p_id: ev.id }))[0];
-    greetingBlob = g && g.greeting ? b64ToBlob(g.greeting, g.mime) : null;
-    if (greetingBlob) greetingBlob._b64 = g.greeting;
-  } catch (e) {}
-  $('nogreet').hidden = !(info.audio && !greetingBlob);
-}
-
-async function showLive() {
-  $('setup').hidden = true; $('live').hidden = false;
-  loadSel();
-  const a = info.audio, m = info.media;
-  $('lnames').textContent = coupleNames(info.n1, info.n2);
-  $('ldate').textContent = fmtDate(info.date);
-  $('llead').textContent = info.screen ? 'Affichez le QR code sur un écran, et profitez de la soirée.' : 'Imprimez le QR code, posez-le sur les tables, et profitez de la soirée.';
-  $('code').textContent = ev.id + '-' + ev.secret;
-  const svg = qrSvg(guestUrl());
-  $('qr').innerHTML = svg;
-  // carte imprimable
-  $('p-qr').innerHTML = svg;
-  $('p-names').textContent = coupleNames(info.n1, info.n2); $('p-date').textContent = fmtDate(info.date);
-  $('p-line').textContent = a && m ? 'Un mot, une photo, un souvenir' : m ? 'Partagez vos plus beaux souvenirs' : 'Laissez-nous un message';
-  $('p-intro').textContent = a && m ? 'Écoutez le message des mariés, laissez-leur un mot de votre voix et partagez vos photos et vos vidéos de la journée. Aucune application à installer.'
-    : m ? 'Partagez vos plus belles photos et vidéos de la journée avec les mariés. Aucune application à installer.'
-    : 'Écoutez le message des mariés, puis laissez-leur un mot de votre voix. Aucune application à installer.';
-  // boutons : écran en premier si choisi, sinon impression
-  $('screenbtn').className = info.screen ? 'btn fill' : 'btn'; $('printbtn').className = info.screen ? 'btn' : 'btn fill';
-  $('screenbtn').parentElement.insertBefore(info.screen ? $('screenbtn') : $('printbtn'), $('screenbtn').parentElement.firstChild);
-  const tabs = TABS(); $('tabs').hidden = tabs.length < 2;
-  document.querySelectorAll('.tab').forEach(b => b.hidden = !tabs.includes(b.dataset.tab));
-  $('reg').hidden = !a;
-  showTab(tabs[0]);
-  clearInterval(pollA); clearInterval(pollM);
-  if (a) { loadGreeting(); refresh(); pollA = setInterval(refresh, 30000); }
-  if (m) { refreshMedia(); pollM = setInterval(refreshMedia, 45000); }
-  updateMontageStats();
-}
-
-async function load(id, secret) {
-  try {
-    const rows = await api('list_messages', { p_event: id, p_secret: secret });
-    const e = (await api('get_event', { p_id: id }))[0];
-    if (!e) throw new Error('introuvable');
-    ev = { id, secret }; info = { n1: e.n1, n2: e.n2, date: e.wedding_date || '', audio: e.opt_audio, media: e.opt_media, screen: e.opt_screen };
-    persist(); messages = rows; await showLive();
-  } catch (e) {
-    if (/Code incorrect|introuvable/i.test(e.message)) { try { localStorage.removeItem(PREFIX + 'event'); } catch (x) {} ev = null; }   // livre d'or supprimé : on l'oublie
-    $('err').textContent = /Code incorrect|introuvable/i.test(e.message) ? 'Code incorrect ou livre d\'or introuvable.' : 'Connexion impossible. Réessayez.';
-  }
-}
-
-/* ---------- Messages vocaux ---------- */
-async function refresh() {
-  try { messages = await api('list_messages', { p_event: ev.id, p_secret: ev.secret }); $('sync').textContent = 'À jour · ' + clock(new Date()); }
-  catch (e) { $('sync').textContent = 'Hors ligne'; }
-  renderList(); updateMontageStats();
-}
-$('refresh').onclick = refresh;
-
-function renderList() {
-  $('count').textContent = messages.length;
-  $('clabel').textContent = messages.length > 1 ? 'messages' : 'message';
-  $('tc-audio').textContent = messages.length ? '(' + messages.length + ')' : '';
-  $('empty').hidden = messages.length > 0;
-  updateDl();
-  const list = $('list'); list.innerHTML = '';
-  [...messages].reverse().forEach(m => {
-    const el = document.createElement('div'); el.className = 'msg';
-    el.innerHTML = '<div><div class="who"></div><div class="hint">' + clock(m.created_at) + ' · ' + fmtTime(m.dur) + '</div></div><div><button class="btn play" style="padding:10px 18px;min-height:0">Écouter</button> <button class="link del">Supprimer</button></div>' +
-      '<label class="pick"><input type="checkbox"> Dans le montage</label>';
-    el.querySelector('.who').textContent = m.guest || 'Invité anonyme';
-    const cb = el.querySelector('.pick input'); cb.checked = !sel.audioOff.has(m.id);
-    cb.onchange = () => { cb.checked ? sel.audioOff.delete(m.id) : sel.audioOff.add(m.id); saveSel(); };
-    const holder = document.createElement('div'); holder.style.gridColumn = '1 / -1'; el.appendChild(holder);
-    el.querySelector('.play').onclick = async () => {
-      const play = el.querySelector('.play'); play.disabled = true; play.textContent = '…';
-      try {
-        const blob = await fetchAudio(m);
-        holder.innerHTML = ''; const a = document.createElement('audio'); a.controls = true; a.src = URL.createObjectURL(blob); holder.appendChild(a); a.play().catch(() => {});
-        play.hidden = true;
-      } catch (e) { play.disabled = false; play.textContent = 'Réessayer'; }
-    };
-    el.querySelector('.del').onclick = async () => {
-      if (!confirm('Supprimer définitivement ce message ?')) return;
-      try { await api('delete_message', { p_event: ev.id, p_secret: ev.secret, p_id: m.id }); delete blobs[m.id]; sel.audioOff.delete(m.id); refresh(); } catch (e) { alert('Suppression impossible : ' + e.message); }
-    };
-    list.appendChild(el);
-  });
-}
-
-async function fetchAudio(m) {
-  if (blobs[m.id]) return blobs[m.id];
-  const r = (await api('get_audio', { p_event: ev.id, p_secret: ev.secret, p_id: m.id }))[0];
-  return (blobs[m.id] = b64ToBlob(r.audio, r.mime));
-}
-
-function download(blob, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-}
-
-/* ---------- Photos & vidéos ---------- */
-const mcall = (action, extra) => mediaApi({ action, event: ev.id, secret: ev.secret, ...extra });
-const isVideo = it => (it.mime || '').startsWith('video/');
-const isPhoto = it => (it.mime || '').startsWith('image/');
-const guestName = it => { const g = prettyGuest(it.guest); return g === 'Invité' ? '' : g; };
-
-async function signPaths(paths, ttl) {
-  const out = {};
-  for (let k = 0; k < paths.length; k += 100) Object.assign(out, (await mcall('sign_download', { paths: paths.slice(k, k + 100), ttl })).urls);
-  return out;
-}
-
-async function refreshMedia() {
-  try {
-    if (Date.now() - murlsAt > 5 * 3600 * 1000) { murls = {}; murlsAt = Date.now(); tiles = {}; $('grid').innerHTML = ''; }  // les liens durent 6 h
-    mitems = (await mcall('list')).items;
-    const need = mitems.filter(i => !murls[i.path]).map(i => i.path);
-    if (need.length) Object.assign(murls, await signPaths(need, 21600));
-    $('msync').textContent = 'À jour · ' + clock(new Date());
-  } catch (e) { $('msync').textContent = 'Hors ligne'; }
-  renderGrid(); updateMontageStats();
-}
-$('mrefresh').onclick = refreshMedia;
-
-function makeTile(it) {
-  const url = murls[it.path];
-  const el = document.createElement('div'); el.className = 'tile'; el.dataset.path = it.path;
-  const box = document.createElement('div'); box.className = 'm';
-  if (isVideo(it)) {
-    const v = document.createElement('video'); v.src = url + '#t=0.1'; v.controls = true; v.preload = 'metadata'; v.playsInline = true; box.appendChild(v);
-  } else {
-    const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.style.display = 'block';
-    const img = document.createElement('img'); img.loading = 'lazy'; img.src = url; img.alt = '';
-    img.onerror = () => { a.textContent = 'Ouvrir la photo'; a.style.cssText += ';display:grid;place-items:center;min-height:110px;font-size:.8rem'; };
-    a.appendChild(img); box.appendChild(a);
-  }
-  el.appendChild(box);
-  const cap = document.createElement('div'); cap.className = 'cap';
-  cap.innerHTML = '<b></b><span></span>'; cap.querySelector('b').textContent = guestName(it) || ' '; cap.querySelector('span').textContent = clock(it.created_at);
-  el.appendChild(cap);
-  const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.title = 'Supprimer'; x.setAttribute('aria-label', 'Supprimer');
-  x.onclick = async () => {
-    if (!confirm('Supprimer définitivement cette ' + (isVideo(it) ? 'vidéo' : 'photo') + ' ?')) return;
-    try { await mcall('delete', { paths: [it.path] }); sel.photos.delete(it.path); refreshMedia(); } catch (e) { alert('Suppression impossible : ' + e.message); }
-  };
-  el.appendChild(x);
-  if (isPhoto(it) && info.audio) {
-    const st = document.createElement('button'); st.className = 'star'; st.textContent = '★'; st.title = 'Mettre dans le montage'; st.setAttribute('aria-label', 'Mettre dans le montage');
-    el.classList.toggle('sel', sel.photos.has(it.path));
-    st.onclick = () => { sel.photos.has(it.path) ? sel.photos.delete(it.path) : sel.photos.add(it.path); el.classList.toggle('sel', sel.photos.has(it.path)); saveSel(); };
-    el.appendChild(st);
-  }
-  return el;
-}
-
-function renderGrid() {
-  const have = new Set(mitems.map(i => i.path));
-  for (const p of Object.keys(tiles)) if (!have.has(p)) { tiles[p].remove(); delete tiles[p]; }
-  for (const it of mitems) if (!tiles[it.path] && murls[it.path]) { tiles[it.path] = makeTile(it); $('grid').prepend(tiles[it.path]); }
-  const v = mitems.filter(isVideo).length, p = mitems.length - v, bytes = mitems.reduce((s, i) => s + i.size, 0);
-  $('mcount').textContent = mitems.length;
-  $('mlabel').textContent = mitems.length > 1 ? 'fichiers' : 'fichier';
-  $('msize').textContent = mitems.length ? p + (p > 1 ? ' photos' : ' photo') + ' · ' + v + (v > 1 ? ' vidéos' : ' vidéo') + ' · ' + fmtSize(bytes) : '';
-  $('tc-media').textContent = mitems.length ? '(' + mitems.length + ')' : '';
-  $('mempty').hidden = mitems.length > 0;
-  updateDl();
-}
-
-/* ---------- Un seul téléchargement : sons + photos + vidéos ---------- */
-function updateDl() { $('dlall').disabled = !(messages.length || mitems.length || greetingBlob); }
-
-function dlPlan() {
-  const items = [];
-  if (info.audio && greetingBlob) items.push({ kind: 'greeting', size: greetingBlob.size, name: 'Messages_vocaux/00_Annonce_des_maries.' + extFor(greetingBlob.type) });
-  messages.forEach((m, i) => items.push({ kind: 'audio', m, size: Math.max(20000, (m.dur || 10) * 9000), name: 'Messages_vocaux/' + String(i + 1).padStart(3, '0') + '_' + clean(m.guest) + '_' + hhmm(m.created_at) + '.' + extFor(m.mime) }));
-  mitems.forEach((it, i) => items.push({ kind: 'media', it, size: it.size, name: 'Photos_et_videos/' + String(i + 1).padStart(3, '0') + '_' + clean(guestName(it)) + '_' + hhmm(it.created_at) + '.' + (it.path.match(/\.([a-z0-9]+)$/i) || [, 'jpg'])[1] }));
-  const parts = []; let cur = [], size = 0;
-  for (const x of items) { if (cur.length && size + x.size > PART_BYTES) { parts.push(cur); cur = []; size = 0; } cur.push(x); size += x.size; }
-  if (cur.length) parts.push(cur);
-  return parts;
-}
-
-$('dlall').onclick = () => {
-  const parts = dlPlan(), box = $('parts'); box.innerHTML = '';
-  if (!parts.length) return;
-  if (parts.length === 1) return buildPart(parts, 0);
-  $('dlhint').textContent = 'Vos souvenirs sont répartis en ' + parts.length + ' zips. Téléchargez-les l\'un après l\'autre.';
-  parts.forEach((p, i) => {
-    const b = document.createElement('button'); b.className = 'btn';
-    b.textContent = 'Partie ' + (i + 1) + ' / ' + parts.length + ' · ' + p.length + ' fichiers';
-    b.onclick = () => buildPart(parts, i, b);
-    box.appendChild(b);
-  });
-};
-
-async function buildPart(parts, i, btn) {
-  const part = parts[i], label = btn ? btn.textContent : '';
-  if (btn) btn.disabled = true; $('dlall').disabled = true;
-  const files = [];
-  try {
-    const urls = part.some(x => x.kind === 'media') ? await signPaths(part.filter(x => x.kind === 'media').map(x => x.it.path), 3600) : {};
-    for (let k = 0; k < part.length; k++) {
-      $('dlhint').textContent = 'Partie ' + (i + 1) + ' / ' + parts.length + ' — fichier ' + (k + 1) + ' / ' + part.length + '…';
-      const x = part[k]; let data;
-      if (x.kind === 'greeting') data = new Uint8Array(await greetingBlob.arrayBuffer());
-      else if (x.kind === 'audio') data = new Uint8Array(await (await fetchAudio(x.m)).arrayBuffer());
-      else { const r = await fetch(urls[x.it.path]); if (!r.ok) throw new Error('fichier ' + (k + 1) + ' indisponible'); data = new Uint8Array(await r.arrayBuffer()); }
-      files.push({ name: x.name, data });
-    }
-    download(makeZip(files), 'Souvenirs_' + clean(info.n1 + '_et_' + info.n2) + (parts.length > 1 ? '_partie' + (i + 1) + 'sur' + parts.length : '') + '.zip');
-    $('dlhint').textContent = 'Partie ' + (i + 1) + ' / ' + parts.length + ' téléchargée (' + files.length + (files.length > 1 ? ' fichiers' : ' fichier') + ').';
-    if (btn) btn.textContent = label + ' ✓';
-  } catch (e) { $('dlhint').textContent = 'Échec : ' + e.message + '. Réessayez.'; }
-  if (btn) btn.disabled = false; updateDl();
-}
-
-/* ---------- Montage ---------- */
-let mctrl = null, mexporting = false, mcancel = { cancel: false };
-const selectedVoices = () => messages.filter(m => !sel.audioOff.has(m.id));
-function selectedPhotos() {
-  const photos = mitems.filter(isPhoto);
-  const chosen = sel.photos.size ? photos.filter(p => sel.photos.has(p.path)) : photos;
-  return chosen;
-}
-const fmtDur = s => { s = Math.round(s); return s >= 60 ? Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s' : s + ' s'; };
-
-function updateMontageStats() {
-  if (!ev || !info.audio) return;
-  const v = selectedVoices(), ph = selectedPhotos();
-  const sound = (greetingBlob ? 18 : 0) + v.reduce((s, m) => s + (m.dur || 10) + 1.2, 0), total = 4 + sound + 5;
-  $('mstat').innerHTML = '<div><b>' + v.length + '</b><span>message' + (v.length > 1 ? 's' : '') + ' choisi' + (v.length > 1 ? 's' : '') + '</span></div>' +
-    '<div><b>' + ph.length + '</b><span>photo' + (ph.length > 1 ? 's' : '') + (sel.photos.size ? (ph.length > 1 ? ' choisies' : ' choisie') : ' (auto)') + '</span></div>' +
-    '<div><b>≈ ' + fmtDur(total) + '</b><span>durée du film</span></div>' +
-    '<div><b>≈ ' + fmtSize(total * 190000) + '</b><span>taille de la vidéo</span></div>';
-  $('mexport').disabled = mexporting || !(v.length || greetingBlob);
-  $('mplay').disabled = mexporting || !(v.length || greetingBlob);
-}
-$('mall').onclick = () => { sel.audioOff.clear(); saveSel(); renderList(); };
-$('mnone').onclick = () => { messages.forEach(m => sel.audioOff.add(m.id)); saveSel(); renderList(); };
-$('mauto').onclick = () => { sel.photos.clear(); saveSel(); document.querySelectorAll('.tile.sel').forEach(t => t.classList.remove('sel')); };
-
-async function buildSpec(prog) {
-  const voices = selectedVoices(), out = [];
-  for (let i = 0; i < voices.length; i++) { prog('Récupération des messages… ' + (i + 1) + ' / ' + voices.length); out.push({ name: prettyGuest(voices[i].guest ? voices[i].guest : ''), blob: await fetchAudio(voices[i]) }); }
-  const photos = selectedPhotos();
-  const urls = photos.length ? await signPaths(photos.map(p => p.path), 3600) : {};
-  return { names: coupleNames(info.n1, info.n2), date: info.date, greeting: greetingBlob, voices: out.map((o, i) => ({ ...o, name: voices[i].guest || 'un invité' })), photos: photos.map(p => ({ url: urls[p.path] || murls[p.path], guest: guestName(p) })) };
-}
-function mprog(txt, pct) { $('mhint').textContent = txt; if (pct != null) { $('mbar').hidden = false; $('mbar').firstElementChild.style.width = Math.round(pct * 100) + '%'; } }
-
-$('mplay').onclick = async () => {
-  if (mctrl) { mctrl.stop(); mctrl = null; $('mplay').textContent = 'Aperçu'; mprog('', null); $('mbar').hidden = true; return; }
-  $('mplay').disabled = true;
-  try {
-    const spec = await buildSpec(t => mprog(t));
-    const tl = await Montage.prepare(spec, (p, t) => mprog(t, p));
-    $('mplay').disabled = false; $('mplay').textContent = 'Arrêter';
-    mprog('Aperçu en cours… (' + fmtDur(tl.total) + ')', 0);
-    mctrl = Montage.play(tl, $('mc'), { onTime: t => $('mbar').firstElementChild.style.width = Math.round(100 * t / tl.total) + '%', onEnd: () => { mctrl = null; $('mplay').textContent = 'Aperçu'; mprog('Aperçu terminé.', null); $('mbar').hidden = true; } });
-  } catch (e) { mprog('Aperçu impossible : ' + e.message, null); $('mplay').disabled = false; }
-};
-
-$('mexport').onclick = async () => {
-  if (mexporting) { mcancel.cancel = true; return; }
-  if (!Montage.supported()) { mprog('Votre navigateur ne sait pas créer de vidéo. Utilisez Chrome, Edge ou Safari récents sur ordinateur.', null); return; }
-  if (mctrl) $('mplay').click();
-  mexporting = true; mcancel = { cancel: false }; $('mexport').textContent = 'Annuler'; $('mres').hidden = true; $('mplay').disabled = true;
-  try {
-    const spec = await buildSpec(t => mprog(t));
-    const tl = await Montage.prepare(spec, (p, t) => mprog(t, p * 0.05));
-    if (tl.skipped) mprog(tl.skipped + ' message(s) illisible(s) ignoré(s).', 0.05);
-    const blob = await Montage.exportMp4(tl, (p, t) => mprog(t + ' — gardez cet onglet ouvert', p), mcancel);
-    const url = URL.createObjectURL(blob);
-    $('mvid').src = url; $('mdl').href = url; $('mdl').download = 'Montage_' + clean(info.n1 + '_et_' + info.n2) + '.mp4'; $('mres').hidden = false;
-    mprog('Votre montage est prêt (' + fmtDur(tl.total) + ', ' + fmtSize(blob.size) + ').', 1);
-  } catch (e) { mprog(e.message === 'annulé' ? 'Création annulée.' : 'La création a échoué : ' + e.message, null); $('mbar').hidden = true; }
-  mexporting = false; $('mexport').textContent = 'Créer la vidéo (MP4)'; updateMontageStats();
-};
-
-/* ---------- Actions ---------- */
-$('printbtn').onclick = () => window.print();
-$('screenbtn').onclick = () => window.open(screenUrl(), '_blank', 'noopener');
-$('copylink').onclick = async () => {
-  try { await navigator.clipboard.writeText(privateUrl()); $('copylink').textContent = 'Lien copié ✓'; } catch (e) { prompt('Copiez ce lien :', privateUrl()); }
-};
-
-/* ---------- Démarrage ---------- */
-(async () => {
-  const h = location.hash.slice(1).match(/^([a-z0-9]{6,16})\.([a-z0-9]{8,})$/i);
-  if (h && CONFIGURED) return load(h[1].toLowerCase(), h[2].toLowerCase());
-  try {
-    const s = JSON.parse(localStorage.getItem(PREFIX + 'event') || 'null');
-    if (s && CONFIGURED) { await load(s.id, s.secret); if (ev) return; }
-  } catch (e) {}
-  refreshSetup();
-})();
+buy('std', shop.payUrlStandard, shop.priceStandard);
+buy('cap', shop.payUrlCapsule, shop.priceCapsule);
 </script>
 </body>
 </html>

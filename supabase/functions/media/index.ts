@@ -28,6 +28,12 @@ async function secretOk(row: { secret_hash: string }, secret: unknown) {
   return '\\x' + [...h].map((x) => x.toString(16).padStart(2, '0')).join('') === row.secret_hash;
 }
 
+// Lecture : code secret des mariés, ou jeton de la time capsule une fois l'échéance atteinte (jamais pour supprimer)
+async function readOk(row: { secret_hash: string; capsule_token: string | null; capsule_date: string | null }, secret: unknown) {
+  if (await secretOk(row, secret)) return true;
+  return typeof secret === 'string' && !!row.capsule_token && row.capsule_token === secret && !!row.capsule_date && row.capsule_date <= new Date().toISOString().slice(0, 10);
+}
+
 const slugOf = (s: unknown) =>
   String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) || 'invite';
 
@@ -42,7 +48,7 @@ Deno.serve(async (req) => {
   if (!/^[a-z0-9]{6,16}$/.test(ev)) return json({ error: 'Livre d\'or introuvable' }, 404);
 
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-  const { data: row } = await sb.from('events').select('id,opt_media,secret_hash').eq('id', ev).maybeSingle();
+  const { data: row } = await sb.from('events').select('id,opt_media,secret_hash,capsule_token,capsule_date').eq('id', ev).maybeSingle();
   if (!row) return json({ error: 'Livre d\'or introuvable' }, 404);
   const bucket = sb.storage.from('media');
 
@@ -72,7 +78,7 @@ Deno.serve(async (req) => {
 
       // ---- Mariés (code secret) ----
       case 'list': {
-        if (!(await secretOk(row, b.secret))) return json({ error: 'Code incorrect' }, 403);
+        if (!(await readOk(row, b.secret))) return json({ error: 'Code incorrect' }, 403);
         const { data, error } = await sb.rpc('media_list', { p_event: ev });
         if (error) return json({ error: 'Lecture impossible' }, 500);
         const items = (data ?? []).map((o: any) => {
@@ -85,7 +91,7 @@ Deno.serve(async (req) => {
         return json({ items });
       }
       case 'sign_download': {
-        if (!(await secretOk(row, b.secret))) return json({ error: 'Code incorrect' }, 403);
+        if (!(await readOk(row, b.secret))) return json({ error: 'Code incorrect' }, 403);
         const paths: string[] = Array.isArray(b.paths) ? b.paths.slice(0, 200).map(String) : [];
         if (!paths.length || paths.some((p) => !p.startsWith(ev + '/'))) return json({ error: 'Fichiers invalides' }, 400);
         const ttl = Math.min(Math.max(Number(b.ttl) || 3600, 60), 21600); // 1 min à 6 h
