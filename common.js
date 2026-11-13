@@ -141,3 +141,57 @@ function makeZip(files) {
   e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
   return new Blob([...parts, ...central, e.buffer], { type: 'application/zip' });
 }
+
+/* ---------- Photos & vidéos ---------- */
+async function mediaApi(body) {
+  const r = await fetch(CFG.url + '/functions/v1/media', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CFG.key }, body: JSON.stringify(body) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) { const err = new Error(j.error || ('HTTP ' + r.status)); err.status = r.status; throw err; }
+  return j;
+}
+
+function fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + ' Mo' : Math.max(1, Math.round(n / 1024)) + ' Ko'; }
+function prettyGuest(slug) { const s = (slug || '').split('-').map(w => w ? w[0].toUpperCase() + w.slice(1) : w).join('-'); return !s || s === 'Invite' ? 'Invité' : s; }
+
+const MIME_BY_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v', webm: 'video/webm', '3gp': 'video/3gpp' };
+function mimeOf(file) {
+  const t = (file.type || '').toLowerCase().split(';')[0];
+  if (t) return t;
+  const m = /\.([a-z0-9]+)$/i.exec(file.name || '');
+  return (m && MIME_BY_EXT[m[1].toLowerCase()]) || '';
+}
+
+/* Réduit une photo (≈ 1 Mo au lieu de 4-8 Mo) ; en cas d'échec on garde l'original */
+async function compressImage(file, maxSide, quality) {
+  maxSide = maxSide || 2400; quality = quality || 0.85;
+  const mime = mimeOf(file);
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const s = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    if (bmp.close) bmp.close();
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', quality));
+    if (blob && (mime !== 'image/jpeg' || blob.size < file.size)) return { blob, mime: 'image/jpeg' };
+  } catch (e) { /* format non décodable : on envoie tel quel */ }
+  return { blob: file, mime };
+}
+
+/* Envoi d'un fichier vers l'adresse signée, avec progression */
+function putFile(url, blob, mime, onProgress) {
+  return new Promise((ok, ko) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', url);
+    x.setRequestHeader('apikey', CFG.key);
+    x.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+    x.onload = () => (x.status >= 200 && x.status < 300) ? ok() : ko(Object.assign(new Error('HTTP ' + x.status), { status: x.status }));
+    x.onerror = () => ko(new Error('réseau'));
+    x.ontimeout = () => ko(new Error('délai dépassé'));
+    x.timeout = 10 * 60 * 1000;
+    const fd = new FormData();
+    fd.append('cacheControl', '31536000');
+    fd.append('', blob instanceof File || blob.type === mime ? blob : new Blob([blob], { type: mime }), 'f');
+    x.send(fd);
+  });
+}

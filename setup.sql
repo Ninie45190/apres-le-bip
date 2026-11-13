@@ -1,5 +1,6 @@
--- Après le bip — à coller UNE FOIS dans Supabase > SQL Editor > Run
--- Les tables sont fermées (RLS sans aucune règle) : on n'y accède que par les fonctions ci-dessous.
+-- Après le bip — installation complète de la base (état final). À coller UNE FOIS dans Supabase > SQL Editor > Run.
+-- Les tables sont fermées (RLS sans aucune règle) : on n'y accède que par les fonctions ci-dessous
+-- et par la fonction serveur « media » (supabase/functions/media/index.ts) pour les photos et vidéos.
 
 create extension if not exists pgcrypto with schema extensions;
 
@@ -11,6 +12,8 @@ create table if not exists events (
   secret_hash bytea not null,
   greeting bytea,
   greeting_mime text,
+  opt_audio boolean not null default true,
+  opt_media boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -36,27 +39,29 @@ $$;
 revoke all on function check_secret(text, text) from public, anon, authenticated;
 
 -- Création d'un livre d'or
-create or replace function create_event(p_id text, p_secret text, p_n1 text, p_n2 text, p_date date, p_greeting text, p_mime text)
+create or replace function create_event(p_id text, p_secret text, p_n1 text, p_n2 text, p_date date, p_greeting text, p_mime text, p_opt_audio boolean default true, p_opt_media boolean default true)
 returns void language plpgsql security definer set search_path = public, extensions as $$
 begin
   if p_id !~ '^[a-z0-9]{6,16}$' or length(p_secret) < 8 then raise exception 'Identifiants invalides'; end if;
   if length(p_n1) > 60 or length(p_n2) > 60 or length(p_greeting) > 2500000 then raise exception 'Données trop longues'; end if;
-  insert into events(id, n1, n2, wedding_date, secret_hash, greeting, greeting_mime)
-  values (p_id, p_n1, p_n2, p_date, digest(p_secret, 'sha256'), decode(p_greeting, 'base64'), p_mime);
+  if not p_opt_audio and not p_opt_media then raise exception 'Activez au moins une option'; end if;
+  if p_opt_audio and p_greeting is null then raise exception 'Annonce manquante'; end if;
+  insert into events(id, n1, n2, wedding_date, secret_hash, greeting, greeting_mime, opt_audio, opt_media)
+  values (p_id, p_n1, p_n2, p_date, digest(p_secret, 'sha256'), decode(p_greeting, 'base64'), p_mime, p_opt_audio, p_opt_media);
 end $$;
 
 -- Ce que voit l'invité en scannant le QR code
 create or replace function get_event(p_id text)
-returns table(n1 text, n2 text, wedding_date date, greeting text, mime text)
+returns table(n1 text, n2 text, wedding_date date, greeting text, mime text, opt_audio boolean, opt_media boolean)
 language sql security definer set search_path = public as $$
-  select n1, n2, wedding_date, replace(encode(greeting, 'base64'), E'\n', ''), greeting_mime from events where id = p_id;
+  select n1, n2, wedding_date, replace(encode(greeting, 'base64'), E'\n', ''), greeting_mime, opt_audio, opt_media from events where id = p_id;
 $$;
 
--- Dépôt d'un message par un invité (p_id fourni par le téléphone : un renvoi ne crée pas de doublon)
+-- Dépôt d'un message vocal (p_id fourni par le téléphone : un renvoi ne crée pas de doublon)
 create or replace function add_message(p_id uuid, p_event text, p_guest text, p_mime text, p_dur int, p_audio text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if not exists (select 1 from events where id = p_event) then raise exception 'Livre d''or introuvable'; end if;
+  if not exists (select 1 from events where id = p_event and opt_audio) then raise exception 'Livre d''or introuvable'; end if;
   if p_mime !~ '^audio/' or length(p_audio) > 3000000 then raise exception 'Message refusé'; end if;
   if (select count(*) from messages where event_id = p_event) >= 800 then raise exception 'Livre d''or complet'; end if;
   insert into messages(id, event_id, guest, mime, dur, audio)
@@ -96,6 +101,31 @@ begin
   update events set greeting = decode(p_greeting, 'base64'), greeting_mime = p_mime where id = p_event;
 end $$;
 
--- OPTIONNEL — suppression automatique 60 jours après le mariage (active l'extension pg_cron dans Database > Extensions)
+-- Photos & vidéos : dossier de fichiers PRIVÉ (limite 50 Mo par fichier = maximum de l'offre gratuite Supabase)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('media', 'media', false, 52428800,
+  array['image/jpeg','image/png','image/webp','image/heic','image/heif','video/mp4','video/quicktime','video/webm','video/3gpp','video/x-m4v'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types, public = false;
+
+-- Fonctions réservées à la fonction serveur « media » (jamais appelables depuis un navigateur)
+create or replace function media_stats(p_event text)
+returns table(n bigint, bytes bigint)
+language sql security definer set search_path = public, storage as $$
+  select count(*), coalesce(sum((metadata->>'size')::bigint), 0) from storage.objects where bucket_id = 'media' and name like p_event || '/%';
+$$;
+create or replace function media_list(p_event text)
+returns table(name text, size bigint, mime text, created_at timestamptz)
+language sql security definer set search_path = public, storage as $$
+  select o.name, coalesce((o.metadata->>'size')::bigint, 0), o.metadata->>'mimetype', o.created_at
+  from storage.objects o where o.bucket_id = 'media' and o.name like p_event || '/%' order by o.created_at;
+$$;
+revoke all on function media_stats(text) from public, anon, authenticated;
+revoke all on function media_list(text) from public, anon, authenticated;
+grant execute on function media_stats(text) to service_role;
+grant execute on function media_list(text) to service_role;
+
+-- OPTIONNEL — suppression automatique des messages vocaux 60 jours après le mariage
+-- (active l'extension pg_cron dans Database > Extensions).
+-- ATTENTION : cela ne supprime PAS les photos et vidéos (fichiers du dossier « media », à supprimer à part).
 -- select cron.schedule('purge-apres-le-bip', '0 4 * * *',
 --   $$ delete from events where coalesce(wedding_date, created_at::date) < current_date - 60 $$);

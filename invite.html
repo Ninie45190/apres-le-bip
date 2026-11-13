@@ -14,6 +14,7 @@
   .names { font-size: clamp(2.6rem, 12vw, 3.6rem); }
   .timer { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; letter-spacing: .08em; }
   .note { color: var(--gold-deep); font-size: .85rem; }
+  h2.script { font-size: 2.3rem; }
 </style>
 </head>
 <body>
@@ -30,9 +31,12 @@
     <p class="caps" id="w-date"></p>
     <h1 class="script gold names" id="w-names"></h1>
     <div class="orn" style="margin:2px auto"><i></i></div>
-    <p class="lead">Vous êtes invité(e) à laisser un message aux mariés.</p>
-    <p class="hint">Mettez le son de votre téléphone.</p>
-    <button class="btn fill" id="pick">Décrocher</button>
+    <p class="lead" id="w-lead"></p>
+    <p class="hint" id="w-hint">Mettez le son de votre téléphone.</p>
+    <div class="actions">
+      <button class="btn fill" id="pick">Décrocher</button>
+      <button class="btn" id="go-media">Partager mes photos et vidéos</button>
+    </div>
     <p class="note" id="w-note" hidden></p>
   </div>
 
@@ -69,7 +73,27 @@
     <h1 class="script gold names">Merci</h1>
     <div class="orn" style="margin:0 auto"><i></i></div>
     <p class="lead">Votre message est bien arrivé chez les mariés.</p>
-    <button class="link" id="more">Laisser un autre message</button>
+    <div class="actions">
+      <button class="btn" id="more">Laisser un autre message</button>
+      <button class="btn fill" id="more-media">Partager des photos et vidéos</button>
+    </div>
+  </div>
+
+  <!-- PHOTOS & VIDÉOS -->
+  <div class="step" id="s-media" hidden>
+    <p class="caps">Photos &amp; vidéos</p>
+    <h2 class="script gold">Vos souvenirs</h2>
+    <div class="actions">
+      <label class="btn fill mb">Prendre une photo<input type="file" id="in-photo" accept="image/*" capture="environment" hidden></label>
+      <label class="btn mb">Filmer une vidéo<input type="file" id="in-video" accept="video/*" capture="environment" hidden></label>
+      <label class="btn mb">Choisir dans ma galerie<input type="file" id="in-gallery" accept="image/*,video/*" multiple hidden></label>
+    </div>
+    <p class="hint">Une photo prise est <b>envoyée aussitôt</b>. Avec la galerie, vous pouvez en envoyer plusieurs d'un coup, par exemple en fin de soirée.</p>
+    <div style="width:100%"><label class="caps" for="mname" style="display:block">Votre prénom (facultatif)</label><input type="text" id="mname" placeholder="Marie" autocomplete="given-name" maxlength="50"></div>
+    <div class="mq" id="mq"></div>
+    <p class="hint" id="mstat"></p>
+    <p class="hint" id="mwarn" hidden>Gardez cet écran ouvert jusqu'à la fin de l'envoi. Le Wi-Fi est conseillé pour les vidéos.</p>
+    <button class="link" id="mback">Retour</button>
   </div>
 </div>
 
@@ -79,28 +103,38 @@
 const $ = id => document.getElementById(id);
 const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
-const MAX = 120; // secondes
+const VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>';
+const MAX = 120; // secondes de message vocal
 const eventId = location.hash.slice(1).toLowerCase();
+const GUEST_KEY = PREFIX + 'guest';
 let hello = null, current = null, audioCtx, recorder, tInt, t0;
 
 function show(id) { document.querySelectorAll('.step').forEach(s => s.hidden = s.id !== id); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const savedName = () => { try { return localStorage.getItem(GUEST_KEY) || ''; } catch (e) { return ''; } };
+const saveName = v => { try { localStorage.setItem(GUEST_KEY, v); } catch (e) {} };
 
-/* ---- Boîte d'envoi sur le téléphone : un message n'est jamais perdu avant d'être arrivé ---- */
-const odb = new Promise((ok, ko) => { const r = indexedDB.open(PREFIX + 'invite', 1); r.onupgradeneeded = () => r.result.createObjectStore('out', { keyPath: 'id' }); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
-const otx = async (mode, fn) => { try { const d = await odb; return await new Promise((ok, ko) => { const t = d.transaction('out', mode); const q = fn(t.objectStore('out')); t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }); } catch (e) { return null; } };
-const outAll = async () => (await otx('readonly', s => s.getAll())) || [];
+/* ---- Stockage sur le téléphone : rien n'est perdu avant d'être arrivé ---- */
+const odb = new Promise((ok, ko) => {
+  const r = indexedDB.open(PREFIX + 'invite', 2);
+  r.onupgradeneeded = () => { for (const s of ['out', 'media']) if (!r.result.objectStoreNames.contains(s)) r.result.createObjectStore(s, { keyPath: 'id' }); };
+  r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+});
+const tx = async (store, mode, fn) => { try { const d = await odb; return await new Promise((ok, ko) => { const t = d.transaction(store, mode); const q = fn(t.objectStore(store)); t.oncomplete = () => ok(q && q.result); t.onerror = () => ko(t.error); }); } catch (e) { return null; } };
+const outAll = async () => (await tx('out', 'readonly', s => s.getAll())) || [];
 
 async function push(m) {
   await api('add_message', { p_id: m.id, p_event: m.event, p_guest: m.name, p_mime: m.mime, p_dur: m.dur, p_audio: await blobToB64(m.blob) });
-  await otx('readwrite', s => s.delete(m.id));
+  await tx('out', 'readwrite', s => s.delete(m.id));
 }
 
 async function flushOutbox() {
   const mine = (await outAll()).filter(m => m.event === eventId);
   let n = 0;
   for (const m of mine) { try { await push(m); n++; } catch (e) {} }
-  if (n) { $('w-note').textContent = n > 1 ? 'Vos messages en attente viennent d\'être envoyés ✓' : 'Votre message en attente vient d\'être envoyé ✓'; $('w-note').hidden = false; }
+  if (n) note(n > 1 ? 'Vos messages en attente viennent d\'être envoyés ✓' : 'Votre message en attente vient d\'être envoyé ✓');
 }
+function note(t) { $('w-note').textContent = t; $('w-note').hidden = false; }
 
 /* ---- Chargement du livre d'or ---- */
 async function connect() {
@@ -114,14 +148,27 @@ async function connect() {
     document.title = 'Message pour ' + coupleNames(hello.n1, hello.n2);
     $('w-names').textContent = coupleNames(hello.n1, hello.n2);
     $('w-date').textContent = fmtDate(hello.wedding_date);
+    setupWelcome();
     show('s-welcome');
-    flushOutbox();
+    flushOutbox(); resumeMedia();
   } catch (e) { fail('Connexion impossible. Vérifiez votre connexion internet.'); }
 }
 function fail(msg, final) { $('load-t').textContent = 'Oups'; $('load-h').textContent = msg; $('retry').hidden = !!final; }
 $('retry').onclick = connect;
 
-/* ---- Décrocher : annonce puis bip ---- */
+function setupWelcome() {
+  const a = hello.opt_audio, m = hello.opt_media;
+  $('pick').hidden = !a; $('go-media').hidden = !m;
+  $('pick').textContent = m ? 'Laisser un message vocal' : 'Décrocher';
+  $('go-media').className = a ? 'btn' : 'btn fill';
+  $('w-lead').textContent = a && m ? 'Laissez-nous un message vocal et partagez vos plus belles photos de la journée.'
+    : a ? 'Vous êtes invité(e) à laisser un message aux mariés.' : 'Partagez vos plus belles photos et vidéos de la journée avec les mariés.';
+  $('w-hint').hidden = !a;
+  $('more').hidden = !a; $('more-media').hidden = !m;
+  $('who').value = savedName(); $('mname').value = savedName();
+}
+
+/* ---- Message vocal : annonce, bip, enregistrement ---- */
 $('pick').onclick = () => {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -138,7 +185,6 @@ function toRec() {
   $('timer').textContent = '0:00'; $('r-hint').textContent = 'Touchez le micro pour commencer.';
 }
 
-/* ---- Enregistrement ---- */
 $('rec').onclick = async () => {
   const b = $('rec');
   if (recorder) return stopRec();
@@ -161,24 +207,136 @@ async function stopRec() {
 }
 $('again').onclick = toRec;
 
-/* ---- Envoi ---- */
 let msg = null;
 $('send').onclick = async () => {
+  saveName($('who').value.trim()); $('mname').value = $('who').value.trim();
   msg = { id: crypto.randomUUID(), event: eventId, name: $('who').value.trim(), mime: current.mime, dur: current.dur, blob: current.blob };
-  await otx('readwrite', s => s.put(msg));   // sauvegarde locale d'abord
+  await tx('out', 'readwrite', s => s.put(msg));   // sauvegarde locale d'abord
   transmit();
 };
 async function transmit() {
   show('s-sending'); $('sd-retry').hidden = true; $('sd-h').textContent = 'Merci de patienter…';
   for (let i = 0; i < 3; i++) {
     try { await push(msg); msg = null; return show('s-done'); }
-    catch (e) { if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 1500 * (i + 1))); }
+    catch (e) { if (e.status && e.status < 500 && e.status !== 429) break; await sleep(1500 * (i + 1)); }
   }
   $('sd-h').textContent = 'L\'envoi n\'a pas abouti. Votre message est gardé sur ce téléphone : réessayez, ou rouvrez le QR code plus tard avec du réseau.';
   $('sd-retry').hidden = false;
 }
 $('sd-retry').onclick = transmit;
 $('more').onclick = toRec;
+$('more-media').onclick = () => show('s-media');
+
+/* ---- Photos & vidéos ---- */
+$('go-media').onclick = () => show('s-media');
+$('mback').onclick = () => show('s-welcome');
+$('mname').oninput = () => saveName($('mname').value.trim());
+
+const queue = [];
+let running = 0, prep = Promise.resolve(), wake = null;
+const CONCURRENCY = 2;
+
+async function keepAwake(on) {
+  try {
+    if (on && !wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    else if (!on && wake) { await wake.release(); wake = null; }
+  } catch (e) { wake = null; }
+}
+const pending = () => queue.filter(q => q.status === 'prep' || q.status === 'ready' || q.status === 'sending').length;
+window.addEventListener('beforeunload', e => { if (pending() > 0) { e.preventDefault(); e.returnValue = ''; } });
+
+function makeRow(it) {
+  const el = document.createElement('div'); el.className = 'qi';
+  el.innerHTML = '<div class="th"></div><div style="min-width:0"><div class="nm"></div><div class="st"></div><div class="bar"><i></i></div></div><button class="link" hidden>Réessayer</button>';
+  it.el = el;
+  el.querySelector('button').onclick = () => { it.status = 'ready'; it.tries = 0; render(it); pump(); };
+  $('mq').prepend(el);
+}
+
+function render(it) {
+  const el = it.el; if (!el) return;
+  const th = el.querySelector('.th');
+  if (it.thumb && !th.style.backgroundImage) th.style.backgroundImage = 'url(' + it.thumb + ')';
+  if (it.kind === 'video' && !th.innerHTML) th.innerHTML = VIDEO;
+  el.querySelector('.nm').textContent = (it.kind === 'video' ? 'Vidéo' : it.kind === 'image' ? 'Photo' : 'Fichier') + (it.blob ? ' · ' + fmtSize(it.blob.size) : '');
+  const st = el.querySelector('.st');
+  st.className = 'st' + (it.status === 'done' ? ' ok' : it.status === 'failed' ? ' err' : '');
+  st.textContent = it.status === 'prep' ? 'Préparation…' : it.status === 'ready' ? 'En attente…' : it.status === 'sending' ? 'Envoi… ' + Math.round(it.progress * 100) + ' %'
+    : it.status === 'done' ? 'Envoyée ✓' : (it.err || 'Échec');
+  el.querySelector('.bar i').style.width = (it.status === 'done' ? 100 : it.progress * 100) + '%';
+  el.querySelector('button').hidden = !(it.status === 'failed' && !it.final);
+  updateStat();
+}
+
+function updateStat() {
+  const done = queue.filter(q => q.status === 'done').length, todo = pending(), bad = queue.filter(q => q.status === 'failed').length;
+  const parts = [];
+  if (done) parts.push(done + (done > 1 ? ' envoyés' : ' envoyé') + ' ✓');
+  if (todo) parts.push(todo + ' en cours');
+  if (bad) parts.push(bad + ' en échec');
+  $('mstat').textContent = parts.join(' · ');
+  $('mwarn').hidden = todo === 0;
+}
+
+function failItem(it, text, final) { it.status = 'failed'; it.err = text; it.final = !!final; render(it); tx('media', 'readwrite', s => s.delete(it.id)); }
+
+async function prepare(file) {
+  const it = { id: crypto.randomUUID(), status: 'prep', progress: 0, tries: 0, guest: $('mname').value.trim() };
+  queue.push(it); makeRow(it); render(it);
+  const mime = mimeOf(file);
+  try {
+    if (mime.startsWith('image/')) {
+      const r = await compressImage(file);
+      it.kind = 'image'; it.blob = r.blob; it.mime = r.mime;
+      if (it.blob.size > CFG.maxPhotoMB * 1048576) return failItem(it, 'Photo trop lourde', true);
+      it.thumb = URL.createObjectURL(it.blob);
+      await tx('media', 'readwrite', s => s.put({ id: it.id, event: eventId, guest: it.guest, mime: it.mime, blob: it.blob }));
+    } else if (mime.startsWith('video/')) {
+      it.kind = 'video'; it.blob = file; it.mime = mime;
+      if (file.size > CFG.maxVideoMB * 1048576) return failItem(it, 'Trop lourde (' + fmtSize(file.size) + ', max ' + CFG.maxVideoMB + ' Mo) : choisissez une vidéo plus courte', true);
+    } else return failItem(it, 'Format non pris en charge', true);
+  } catch (e) { return failItem(it, 'Fichier illisible', true); }
+  it.status = 'ready'; render(it); pump();
+}
+
+function addFiles(files) { for (const f of files) prep = prep.then(() => prepare(f)).catch(() => {}); }
+
+function pump() {
+  while (running < CONCURRENCY) {
+    const it = queue.find(q => q.status === 'ready');
+    if (!it) break;
+    send(it);
+  }
+}
+
+async function send(it) {
+  running++; it.status = 'sending'; it.progress = 0; render(it); keepAwake(true);
+  try {
+    const meta = await mediaApi({ action: 'sign_upload', event: eventId, mime: it.mime, size: it.blob.size, guest: it.guest });
+    await putFile(meta.url, it.blob, it.mime, p => { it.progress = p; render(it); });
+    it.status = 'done'; it.progress = 1;
+    tx('media', 'readwrite', s => s.delete(it.id));
+  } catch (e) {
+    if ([400, 403, 404, 413, 415, 507].includes(e.status)) failItem(it, e.message, true);
+    else if (++it.tries < 3) { it.status = 'ready'; await sleep(2000 * it.tries); }
+    else { it.status = 'failed'; it.err = 'Envoi interrompu : vérifiez votre connexion'; }
+  }
+  running--; render(it); pump();
+  if (!running && !queue.some(q => q.status === 'ready')) keepAwake(false);
+}
+
+/* Photos restées sur le téléphone (connexion perdue) : on reprend l'envoi */
+async function resumeMedia() {
+  const rows = ((await tx('media', 'readonly', s => s.getAll())) || []).filter(m => m.event === eventId && !queue.some(q => q.id === m.id));
+  for (const m of rows) {
+    const it = { id: m.id, status: 'ready', progress: 0, tries: 0, guest: m.guest || '', kind: 'image', blob: m.blob, mime: m.mime, thumb: URL.createObjectURL(m.blob) };
+    queue.push(it); makeRow(it); render(it);
+  }
+  if (rows.length) { note('Des photos en attente sont en cours d\'envoi…'); pump(); }
+}
+
+for (const id of ['in-photo', 'in-video', 'in-gallery'])
+  $(id).onchange = e => { addFiles([...e.target.files]); e.target.value = ''; };
 
 connect();
 </script>
