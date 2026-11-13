@@ -26,10 +26,10 @@ const Montage = (() => {
   }
 
   // Le « bip » de fin de répondeur (même son que celui entendu par les invités : 880 Hz, 0,6 s)
-  function bipPcm() {
-    const sr = SR(), n = Math.round(0.6 * sr), out = new Float32Array(n);
+  function bipPcm(len = 0.6) {
+    const sr = SR(), n = Math.round(len * sr), out = new Float32Array(n), rel = Math.min(0.15, len / 3);
     for (let i = 0; i < n; i++) {
-      const t = i / sr, env = t < 0.03 ? t / 0.03 : t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.15);
+      const t = i / sr, env = t < 0.03 ? t / 0.03 : t < len - rel ? 1 : Math.max(0, (len - t) / rel);
       out[i] = Math.sin(2 * Math.PI * 880 * t) * 0.35 * env;
     }
     return out;
@@ -57,9 +57,16 @@ const Montage = (() => {
           segs.push({ kind: 'bip', label: '', data: bip, start: bs, end: bs + bip.length / SR(), dur: bip.length / SR() });
           introEnd = Math.max(INTRO, bs + bip.length / SR() + 0.9); t = introEnd;
         }
-        else { if (!t) t = introEnd; segs.push({ ...items[i], start: t, end: t + dur, dur }); t += dur + GAP; }
+        else {
+          if (!t) t = introEnd;
+          segs.push({ ...items[i], start: t, end: t + dur, dur });
+          const sb = bipPcm(0.25);                                    // petit bip entre deux messages
+          segs.push({ kind: 'bip', label: '', data: sb, start: t + dur + 0.3, end: t + dur + 0.55, dur: 0.25 });
+          t += dur + GAP;
+        }
       } catch (e) { skipped++; }
     }
+    if (segs.length && segs[segs.length - 1].kind === 'bip' && segs.length > 1 && segs[segs.length - 2].kind === 'voice') segs.pop();   // pas de bip après le dernier message
     pcmCache.clear();
     const photos = spec.photos || [];
     const voiceSegs = segs.filter(g => g.kind === 'voice');
