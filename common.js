@@ -162,12 +162,38 @@ function mimeOf(file) {
   return (m && MIME_BY_EXT[m[1].toLowerCase()]) || '';
 }
 
-/* Réduit une photo (≈ 1 Mo au lieu de 4-8 Mo) ; en cas d'échec on garde l'original */
+/* Format HEIC/HEIF (photos d'iPhone) : lu nativement par Safari ; sinon on charge un convertisseur de secours (1,3 Mo, seulement si nécessaire) */
+const isHeic = (file, mime) => /hei[cf]/.test(mime || '') || /\.hei[cf]$/i.test(file.name || '');
+let heicLib = null;
+function loadHeicLib() {
+  if (window.heic2any) return Promise.resolve();
+  if (!heicLib) heicLib = new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+    s.onload = ok; s.onerror = () => { heicLib = null; ko(new Error('convertisseur HEIC indisponible')); };
+    document.head.appendChild(s);
+  });
+  return heicLib;
+}
+async function heicToJpeg(file) {
+  await loadHeicLib();
+  const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+  return Array.isArray(out) ? out[0] : out;
+}
+async function decodeImage(file, mime) {
+  try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    if (!isHeic(file, mime)) throw e;
+    return await createImageBitmap(await heicToJpeg(file), { imageOrientation: 'from-image' });   // HEIC illisible par le navigateur : conversion en JPEG
+  }
+}
+
+/* Réduit une photo (≈ 1 Mo au lieu de 4-8 Mo) et la convertit toujours en JPEG ; en cas d'échec on garde l'original */
 async function compressImage(file, maxSide, quality, mirror) {
   maxSide = maxSide || 2400; quality = quality || 0.85;
   const mime = mimeOf(file);
   try {
-    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const bmp = await decodeImage(file, mime);
     const s = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
     const w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
