@@ -49,7 +49,12 @@ Deno.serve(async (req) => {
     f.set('line_items[0][price_data][unit_amount]', String(p.cents));
     f.set('line_items[0][price_data][product_data][name]', p.name);
     f.set('line_items[0][price_data][product_data][description]', p.desc);
-    f.set('metadata[kind]', kind);
+    f.set('metadata[kind]', kind); f.set('metadata[site]', 'lebipdesmaries.fr');
+    // Facture automatique (franchise de TVA) envoyée par Stripe avec le reçu
+    f.set('invoice_creation[enabled]', 'true');
+    f.set('invoice_creation[invoice_data][description]', p.name);
+    f.set('invoice_creation[invoice_data][footer]', 'TVA non applicable, art. 293 B du CGI — Virginie Lavaud, entrepreneur individuel — SIRET 102 734 712 00015');
+    f.set('invoice_creation[invoice_data][metadata][kind]', kind);
     f.set('payment_intent_data[description]', p.name);
     f.set('success_url', `${SITE}/merci.html?s={CHECKOUT_SESSION_ID}`);
     f.set('cancel_url', `${SITE}/acheter.html?f=${kind}`);
